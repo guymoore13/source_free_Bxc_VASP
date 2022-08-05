@@ -1,0 +1,10 @@
+--- DIR_ORIG/.objects	2022-07-13 19:59:41.240161000 -0700
++++ DIR_NEW/.objects	2022-07-13 19:59:59.137362500 -0700
+@@ -69,6 +69,7 @@
+ 	hamil.o \
+ 	xcgrad.o \
+ 	xcspin.o \
++	source_free_bxc.o \
+ 	potex1.o \
+ 	potex2.o \
+ 	constrmag.o \

@@ -1,0 +1,18 @@
+--- DIR_ORIG/wave_struct.F	2022-01-08 23:04:24.082713000 -0800
++++ DIR_NEW/wave_struct.F	2022-01-09 11:05:30.412267000 -0800
+@@ -83,6 +83,7 @@
+      LOGICAL LGAMMA                ! gamma point only, projected wavefunction character is REAL
+                                    ! this is only .TRUE. if precompiler flag gammareal is define 
+      LOGICAL LSPIRAL               ! calculate spin spirals?
++     LOGICAL LSOURCEFREE           ! apply div(Bxc)=0 constraint
+      LOGICAL LZEROZ                ! set m_z to zero in SET_CHARGE?
+      INTEGER NBANDSLOW             ! lowest band to be optimized (-1 no restrictions)
+      INTEGER NBANDSHIGH            ! highest band to be optimized (-1 no restrictions)
+@@ -162,6 +163,7 @@
+      LOGICAL LSORBIT               ! spin orbit coupling
+      LOGICAL LGAMMA                ! gamma point only, projected wavefunction character is REAL
+      LOGICAL LSPIRAL               ! calculate spin spirals?
++     LOGICAL LSOURCEFREE           ! apply div(Bxc)=0 constraint
+      LOGICAL LZEROZ                ! set m_z to zero in SET_CHARGE?
+   END TYPE wavedes1
+ 
