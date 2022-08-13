@@ -1,13 +1,7 @@
 --- DIR_ORIG/base.F	2022-01-08 23:17:50.589933000 -0800
-+++ DIR_NEW/base.F	2022-08-01 11:31:23.797647000 -0700
-@@ -136,6 +136,10 @@
-         LOGICAL LCHARG               ! write CHGCAR
-         LOGICAL LVTOT                ! write total local potential to LOCPOT
-         LOGICAL LVHAR                ! write Hartree potential to LOCPOT
++++ DIR_NEW/base.F	2022-08-13 00:00:00.000000000 -0700
+@@ -138,0 +139,4 @@
 +        LOGICAL LVXC                 ! write XC potential to XCPOT
 +        LOGICAL LSOURCEPOT           ! write source-free Bxc corrections to SOURCEPOT
 +        LOGICAL LAXC                 ! write Axc vector potential to AXCPOT
 +        LOGICAL LPMCURRENT           ! write paramagnetic (probability) current density to JPARAMAG
-         LOGICAL LPDENS               ! write partial density (charge density for one band)
-         INTEGER LORBIT               ! write orbit/dos
-         LOGICAL LELF                 ! write elf

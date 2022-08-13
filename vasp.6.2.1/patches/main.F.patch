@@ -1,34 +1,13 @@
 --- DIR_ORIG/main.F	2022-01-04 20:37:39.785461037 -0800
-+++ DIR_NEW/main.F	2022-08-02 14:32:13.428801606 -0700
-@@ -650,6 +650,7 @@
-           LPLANE_WISE,LCOMPAT,LMAX_CALC,SET_LMAX_MIX_TO,WDES%NSIM,LPARD,LPAW,LADDGRID, &
-           WDES%LNONCOLLINEAR,WDES%LSORBIT,WDES%SAXIS,INFO%LMETAGGA, &
-           WDES%LSPIRAL,WDES%LZEROZ,WDES%QSPIRAL,WDES%LORBITALREAL, &
++++ DIR_NEW/main.F	2022-08-13 00:00:00.000000000 -0700
+@@ -652,0 +653 @@
 +          WDES%LSOURCEFREE,IO%LVXC,IO%LSOURCEPOT,IO%LAXC,IO%LPMCURRENT, &
-           INFO%LASPH,INFO%TURBO,INFO%IRESTART,INFO%NREBOOT,INFO%NMIN,INFO%EREF, &
-           INFO%NLSPLINE,MDALGO,FFTW_PLAN_EFFORT, &
-           IO%LH5, IO%LWAVEH5, IO%LCHARGH5 &
-@@ -873,6 +874,8 @@
-       CALL BEXT_READER(IO%IU0,IO%IU5)
- ! bexternal__
-       CALL CLASSICFIELDS_WRITE(IO%IU6)
+@@ -875,0 +877,2 @@
 +! sourcefree__
 +      CALL SOURCEFREE_READER(IO%IU0,IO%IU5)
- !-----------------------------------------------------------------------
- ! exchange correlation table
- !-----------------------------------------------------------------------
-@@ -1590,6 +1593,7 @@
-           LPLANE_WISE,LCOMPAT,LMAX_CALC,SET_LMAX_MIX_TO,WDES%NSIM,LPARD,LPAW,LADDGRID, &
-           WDES%LNONCOLLINEAR,WDES%LSORBIT,WDES%SAXIS,INFO%LMETAGGA, &
-           WDES%LSPIRAL,WDES%LZEROZ,WDES%QSPIRAL, &
+@@ -1592,0 +1596 @@
 +          WDES%LSOURCEFREE,IO%LVXC,IO%LSOURCEPOT,IO%LAXC,IO%LPMCURRENT, &
-           INFO%LASPH,WDES%LORBITALREAL, &
-           INFO%TURBO,INFO%IRESTART,INFO%NREBOOT,INFO%NMIN,INFO%EREF, &
-           INFO%NLSPLINE,MDALGO,PHON_NSTRUCT)
-@@ -4745,6 +4749,160 @@
-          ENDIF
- #endif
-       ENDIF
+@@ -4747,0 +4752,154 @@
 +
 +      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 +      !! GCM:
@@ -183,6 +162,3 @@
 +
 +!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 +
- !=======================================================================
- !  Write out the Eigenvalues
- !=======================================================================

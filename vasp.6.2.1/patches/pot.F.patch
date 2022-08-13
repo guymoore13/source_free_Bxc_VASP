@@ -1,12 +1,9 @@
---- DIR_ORIG/pot.F	2021-10-25 16:09:51.174811000 -0700
-+++ DIR_NEW/pot.F	2022-08-02 14:31:27.617662000 -0700
-@@ -213,8 +213,31 @@
- !gK COHend
-           ! we have now the potential for up and down stored in CVTOT(:,1) and CVTOT(:,2)
-           ! get the proper direction vx = v0 + hat m delta v
+--- DIR_ORIG/pot.F	2022-08-13 00:00:00.000000000 -0700
++++ DIR_NEW/pot.F	2022-08-13 00:00:00.000000000 -0700
+@@ -216 +216 @@
 -                    
-+          
-           CALL MAG_DIRECTION(CHTOT(1,1), CVTOT(1,1), GRIDC, WDES%NCDIJ)
++
+@@ -217,0 +218,23 @@
 +
 +          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 +          !! GCM: source-free correction to Bxc
@@ -30,13 +27,7 @@
 +          
 +          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 +
-        ELSE
-           IF (ISGGA()) THEN
-              ! gradient corrections to LDA
-@@ -630,6 +653,20 @@
-           CALL MAG_DIRECTION(CHTOT(1,1), CVTOT(1,1), GRIDC, WDES%NCDIJ)
- !-MM- end of changes to calculation of gga in noncollinear case
- 
+@@ -632,0 +656,14 @@
 +          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 +          !! GCM: source-free correction to Bxc
 +          !! Input:  Bxc with magnetic monopoles (in CVTOT(I, "2 to 4"))
@@ -51,13 +42,7 @@
 +          ENDIF
 +          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 +
-        ELSE
-           IF (ISGGA()) THEN
-              ! gradient corrections to LDA
-@@ -660,6 +697,143 @@
- 
-       END SUBROUTINE POTXC
- 
+@@ -662,0 +700,137 @@
 +      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 +      !! GCM:
 +
@@ -195,13 +180,8 @@
 +
 +      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 +
- !tb beg
-       !c this is basically the subroutine POTXC modified to work with the dDsC correction
-       !c scheme
-@@ -737,6 +911,20 @@
-           CALL MAG_DIRECTION(CHTOT(1,1), CVTOT(1,1), GRIDC, WDES%NCDIJ)
- !-MM- end of changes to calculation of gga in noncollinear case
- 
+@@ -738,0 +913,14 @@
++
 +          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 +          !! GCM: source-free correction to Bxc
 +          !! Input:  Bxc with magnetic monopoles (in CVTOT(I, "2 to 4"))
@@ -215,7 +195,3 @@
 +!$ACC UPDATE DEVICE(CVTOT) __IF_ASYNC__
 +          ENDIF
 +          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-+
-        ELSE
-           IF (ISGGA()) THEN
-              ! gradient corrections to LDA

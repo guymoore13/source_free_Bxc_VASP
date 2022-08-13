@@ -1,44 +1,17 @@
---- DIR_ORIG/metagga.F	2021-10-25 16:11:49.091777499 -0700
-+++ DIR_NEW/metagga.F	2022-07-06 13:54:14.582961881 -0700
-@@ -6046,7 +6046,7 @@
- 
-       CALL FEXCGS_METAGGA( &
-      &   WDES%NCDIJ,GRIDC,LATT_CUR,XCENCG,EXCG,CVZERG,TMPSIF, &
+--- DIR_ORIG/metagga.F	2022-08-13 00:00:00.000000000 -0700
++++ DIR_NEW/metagga.F	2022-08-13 00:00:00.000000000 -0700
+@@ -6049 +6049 @@
 -     &   KINEDEN,CTMP,DENCOR,CWORK,MUTOT_)
 +     &   KINEDEN,CTMP,DENCOR,CWORK,MUTOT_,WDES%LSOURCEFREE)
- 
-       XCSIF=XCSIF+TMPSIF
-       E%EXCG=E%EXCG+EXCG
-@@ -6242,7 +6242,7 @@
- 
-       CALL FEXCGS_METAGGA( &
-      &   WDES%NCDIJ,GRIDC,LATT_CUR,XCENCG,EXCG,CVZERG,TMPSIF, &
+@@ -6245 +6245 @@
 -     &   KINEDEN,CTMP,DENCOR,CVTOT,MUTOT_)
 +     &   KINEDEN,CTMP,DENCOR,CVTOT,MUTOT_,WDES%LSOURCEFREE)
- 
- #ifndef noAugXCmeta
-       ! Take the charge density back to reciprocal space
-@@ -6299,7 +6299,7 @@
- 
-       SUBROUTINE FEXCGS_METAGGA(&
-      &   NCDIJ,GRIDC,LATT_CUR,XCENC,EXC,CVZERO,XCSIF, &
+@@ -6302 +6302 @@
 -     &   KINEDEN,CHTOT,DENCOR,CWORK,MUTOT &
 +     &   KINEDEN,CHTOT,DENCOR,CWORK,MUTOT,LSOURCEFREE_T &
-      &)
- #ifdef _OPENACC
-       USE mopenacc_struct_def
-@@ -6321,6 +6321,7 @@
-       COMPLEX(q) CHTOT(GRIDC%MPLWV,NCDIJ),CWORK(GRIDC%MPLWV,NCDIJ)
-       DIMENSION XCSIF(3,3)
-       COMPLEX(q), POINTER :: MUTOT(:,:)
+@@ -6323,0 +6324 @@
 +      LOGICAL LSOURCEFREE_T
-       ! work arrays
-       COMPLEX(q),ALLOCATABLE :: CWGRAD(:,:)
-       REAL(q), ALLOCATABLE   :: DWORKG(:,:),DWORK1(:,:),DWORK2(:,:),DWORK3(:,:),DVC(:)
-@@ -6402,6 +6403,25 @@
-             ! It needs to flip to (total, mag) representation
-             CALL MAG_DIRECTION(CHTOT(1,1), CWORK(1,1), GRIDC, NCDIJ)
-          ENDIF
+@@ -6404,0 +6406,19 @@
 +
 +         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 +         !! GCM: source-free correction to Bxc
@@ -58,6 +31,3 @@
 +         ENDIF
 +         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 +
-          ! rearrange the potential in (spinor) representation
-          CALL POT_FLIP_RL(CWORK(1,1), GRIDC, NCDIJ)
- !$ACC EXIT DATA DELETE(CWGRAD,DWORKG,DWORK1,DWORK2,DWORK3,DVC) __IF_ASYNC__
