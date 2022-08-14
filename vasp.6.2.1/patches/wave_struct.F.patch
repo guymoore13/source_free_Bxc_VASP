@@ -1,5 +1,5 @@
---- DIR_ORIG/wave_struct.F	2022-01-08 23:04:24.082713000 -0800
-+++ DIR_NEW/wave_struct.F	2022-01-09 11:05:30.412267000 -0800
+--- DIR_ORIG/wave_struct.F	2022-08-13 00:00:00.000000000 -0700
++++ DIR_NEW/wave_struct.F	2022-08-13 00:00:00.000000000 -0700
 @@ -85,0 +86 @@
 +     LOGICAL LSOURCEFREE           ! apply div(Bxc)=0 constraint
 @@ -164,0 +166 @@

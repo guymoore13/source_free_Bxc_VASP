@@ -1,0 +1,6 @@
+--- DIR_ORIG/wave.F	2022-08-13 00:00:00.000000000 -0700
++++ DIR_NEW/wave.F	2022-08-13 00:00:00.000000000 -0700
+@@ -96,0 +97 @@
++     LOGICAL LSOURCEFREE           ! apply div(Bxc)=0 constraint
+@@ -169,0 +171 @@
++     LOGICAL LSOURCEFREE           ! apply div(Bxc)=0 constraint

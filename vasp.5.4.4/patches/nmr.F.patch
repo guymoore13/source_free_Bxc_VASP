@@ -1,0 +1,241 @@
+--- DIR_ORIG/nmr.F	2022-08-13 00:00:00.000000000 -0700
++++ DIR_NEW/nmr.F	2022-08-13 00:00:00.000000000 -0700
+@@ -1748,0 +1749,238 @@
++    
++!*********** SUBROUTINE PROBABILITY (PARAMAGNETIC) CURRENT   ***********************
++!
++! routine to evaluate current density
++!
++!***********************************************************************************
++
++    SUBROUTINE CURRENT_PARAMAG( W, GRID_SOFT, GRIDC, GRIDUS, C_TO_US, SOFT_TO_C, P, LATT_CUR, &
++          AVEC, AVTOT, CJPARAMAG, CHTOT, T_INFO)
++#ifdef _OPENACC
++     USE mopenacc
++#endif
++      USE wave_high
++      USE lattice
++      USE mgrid
++      USE constant
++      USE poscar
++      USE us
++      USE pseudo
++      USE paw
++      USE nonl_high
++      USE hamil
++
++      TYPE (wavespin)    W             ! wavefunction
++      TYPE (grid_3d)     GRID_SOFT     ! soft grid for pseudized potentials/ charge etc.
++      TYPE (grid_3d)     GRIDC         ! full, fine grid
++      TYPE (grid_3d)     GRIDUS        ! doubled grid
++      TYPE (transit)     SOFT_TO_C     !
++      TYPE (transit)     C_TO_US       !
++      TYPE (latt)        LATT_CUR      ! lattice
++      TYPE (potcar), TARGET :: P(:)          ! pseudopotential information
++      TYPE (wavefun1)    W1            ! wavefunction array
++      TYPE (wavefun1)    W0            ! wavefunction array
++      RGRID, POINTER  :: AVEC(:,:)     ! vector potential on course grid
++      COMPLEX(q),POINTER ::  AVTOT(:,:)! vector potential on fine grid
++      COMPLEX(q) ::       CHTOT(:,:)   ! charge density on fine grid
++      COMPLEX(q) ::       CJPARAMAG(GRIDC%MPLWV,3)    ! paramagnetic current density on fine grid
++      TYPE (type_info):: T_INFO        ! type information
++
++    ! local
++      INTEGER ISP, NK, N, I, NI, NIP, M, NT
++      INTEGER NG, NC, N1, N2, N3, NX, NY, NZ, IRDMAA
++      INTEGER ITMP
++      INTEGER IDIR
++      TYPE (wavedes1)    WDES1
++      TYPE (potcar), POINTER :: PP
++
++    ! Gilles: allocate instead of automatic arrays
++      COMPLEX(q), ALLOCATABLE :: CWORK1(:)
++      COMPLEX(q), ALLOCATABLE :: CWORK2(:)
++      RGRID, ALLOCATABLE      :: JVEC_TMP(:,:)
++      COMPLEX(q), ALLOCATABLE :: JVEC(:)
++      RGRID, ALLOCATABLE      :: CHDEN_TMP(:)
++      ! COMPLEX(q), ALLOCATABLE :: CJPARAMAG(:,:)
++      COMPLEX(q), ALLOCATABLE :: DIV_J(:)
++      REAL(q)    :: WEIGHT
++      REAL(q)    :: TMP(3),TMP2(3),JTMP(3),POS(3),TMP3(3)
++      REAL(q)    :: TMP1(3)
++      INTEGER :: L,LP
++!gil  TYPE (wavefun1)    W1                ! wavefunction
++      REAL(q)    :: CUTOFF,XX
++! 4 grid points around the step function are usually a good choice
++      REAL(q), PARAMETER :: WIDTH=4
++      
++      PUSH_ACC_EXEC_ON(.FALSE.)
++      
++      ! WRITE(*,*) 'HERE PM! 0'
++      
++#ifdef _OPENACC
++!$ACC WAIT IF(ACC_EXEC_ON)
++      ACC_ASYNC_Q=ACC_ASYNC_SYNC
++#endif
++
++#ifdef MPI
++      IF (W%WDES%COMM_KINTER%NCPU.NE.1) THEN
++         CALL vtutor%error("CURRENT: KPAR>1 not implemented, sorry.")
++      END IF
++#endif
++!test reallocate the P%JPAW array
++      DO NT=1,SIZE(P)
++         IF ( ASSOCIATED(P(NT)%JPAW)) DEALLOCATE(P(NT)%JPAW)
++      ENDDO
++      CALL CALC_JPAW(T_INFO, P)
++
++!     WRITE(*,*) ' forcing JPAW to 0 L=0'
++      DO NT=1,SIZE(P)
++         IF ( ASSOCIATED(P(NT)%JPAW)) THEN
++!            P(NT)%JPAW=0
++!            P(NT)%JPAW(:,:,1,:)=0
++!            P(NT)%JPAW(:,:,2:,:)=0
++!            P(NT)%JPAW(:,:,5:,:)=0
++         ENDIF
++      ENDDO
++
++      ALLOCATE(CWORK1(W%WDES%NRPLWV))
++      ALLOCATE(CWORK2(W%WDES%GRID%MPLWV))
++      ALLOCATE(JVEC_TMP(W%WDES%GRID%RL%NP,3))
++      ALLOCATE(JVEC(GRID_SOFT%MPLWV))
++      ALLOCATE(CHDEN_TMP(W%WDES%GRID%RL%NP))
++      ALLOCATE(DIV_J(GRIDC%MPLWV))
++
++      CALL SETWDES(W%WDES,WDES1,0)
++      CALL NEWWAV(W1 , WDES1,.TRUE.)
++      
++      ! WRITE(*,*) 'HERE PM! 1'
++
++!-----------------------------------------------------------------------
++! first step calculate current density and charge density
++! in real space
++!-----------------------------------------------------------------------
++
++      JVEC_TMP=0
++      CHDEN_TMP=0
++
++      spin:  DO ISP=1,W%WDES%ISPIN
++      kpoint: DO NK=1,W%WDES%NKPTS
++         CALL SETWDES(W%WDES,WDES1,NK)
++
++         DO N=1,W%WDES%NBANDS
++            CALL W1_COPY( ELEMENT( W, WDES1, N, ISP), W1)
++            CALL FFTWAV_W1(W1)
++            WEIGHT=WDES1%RSPIN*W%FERWE(N,NK,ISP)*W%WDES%WTKPT(NK)
++           
++            CALL PSCURRENT( WDES1, WDES1%GRID, W1%CR(1), WDES1%IGX(1), WDES1%IGY(1), WDES1%IGZ(1), &
++                 WDES1%VKPT, WEIGHT, AVEC(1,1), CWORK1, CWORK2, W1%CW(1), JVEC_TMP, CHDEN_TMP)
++         ENDDO
++      ENDDO kpoint
++      ENDDO spin
++      
++      ! WRITE(*,*) 'HERE PM! 2'
++
++!-----------------------------------------------------------------------
++! change from reciprocal space presentation to cartesian coordinates
++! sign change because electronic charge is negative
++!-----------------------------------------------------------------------
++      DO M=1,W%WDES%GRID%RL%NP
++         DO I=1,3
++            TMP(I)=JVEC_TMP(M,I)
++         ENDDO
++         CALL DIRKAR(1,TMP,LATT_CUR%B)
++         DO I=1,3
++            JVEC_TMP(M,I)=-TMP(I)
++         ENDDO
++      ENDDO
++      
++      ! DO M=1,10
++      !    WRITE(*,*) 'JVEC_TMP',JVEC_TMP(M,1),JVEC_TMP(M,2),JVEC_TMP(M,3)
++      ! ENDDO
++      
++      ! WRITE(*,*) 'JVEC'
++      ! CALL WRT_RL_LINE(6,GRID_SOFT,JVEC_TMP(1,1))
++      ! CALL WRT_RL_LINE(6,GRID_SOFT,JVEC_TMP(1,2))
++      ! CALL WRT_RL_LINE(6,GRID_SOFT,JVEC_TMP(1,3))
++
++ 130  FORMAT (5X, //, &
++     &'----------------------------------------------------', &
++     &'----------------------------------------------------'//)
++     
++
++!-----------------------------------------------------------------------
++! bring the current density as well as soft pseudo density
++! to the fine grid
++!-----------------------------------------------------------------------
++      CJPARAMAG=0
++      DO I=1,3
++! now merge the current from all nodes
++#ifdef realmode
++         CALLMPI( M_sum_d(W%WDES%COMM_INTER, JVEC_TMP(1,I), W%WDES%GRID%RL%NP))
++#else
++         CALLMPI( M_sum_z(W%WDES%COMM_INTER, JVEC_TMP(1,I), W%WDES%GRID%RL%NP))
++#endif
++         CALL FFT_RC_SCALE(JVEC_TMP(1,I),JVEC(1),GRID_SOFT)
++         ! set the current density of unbalanced lattic-vectors to 0
++         CALL SETUNB(JVEC(1),GRID_SOFT)
++
++         ! bring to full grid
++         IF (.NOT.W%WDES%LOVERL) THEN
++            CALL RC_ADD(JVEC(1),1.0_q,JVEC(1),0.0_q,CJPARAMAG(1,I),GRID_SOFT)
++         ELSE
++           CALL ADD_GRID(GRIDC, GRID_SOFT, SOFT_TO_C,JVEC(1),CJPARAMAG(1,I))
++           CALL SETUNB_COMPAT(CJPARAMAG(1,I),GRIDC)
++        ENDIF
++      ENDDO
++      
++#ifdef realmode
++      CALLMPI( M_sum_d(W%WDES%COMM_INTER, CHDEN_TMP(1), W%WDES%GRID%RL%NP))
++#else
++      CALLMPI( M_sum_z(W%WDES%COMM_INTER, CHDEN_TMP(1), W%WDES%GRID%RL%NP))
++#endif
++      ! use JVEC as work array
++      CALL FFT_RC_SCALE(CHDEN_TMP(1),JVEC(1),GRID_SOFT)
++         ! set the current density of unbalanced lattic-vectors to 0
++      CALL SETUNB(JVEC(1),GRID_SOFT)
++
++      ! ! bring to full grid
++      CHTOT=0
++      ! WRITE(*,*) 'only plane wave contribution to CHTOT calculated'
++      IF (.NOT.W%WDES%LOVERL) THEN
++         CALL RC_ADD(JVEC(1),1.0_q,JVEC(1),0.0_q,CHTOT(1,1),GRID_SOFT)
++      ELSE
++         CALL ADD_GRID(GRIDC, GRID_SOFT, SOFT_TO_C,JVEC(1),CHTOT(1,1))
++         CALL SETUNB_COMPAT(CHTOT(1,1),GRIDC)
++      ENDIF
++
++      ! bring total pseudo current and total charge to real space
++      DO I=1,3
++         CALL FFT3D(CJPARAMAG(1,I),GRIDC,1)
++      ENDDO
++      CALL FFT3D(CHTOT(1,1),GRIDC,1)
++
++!-----------------------------------------------------------------------
++! construct total current density
++! upon entry CJPARAMAG contains the negative paramagnetic current contribution
++! to take into account that electrons are negative
++!-----------------------------------------------------------------------
++! ...
++! j = e hbar/m_e sum_n Im(psi nabla psi)
++! ...
++! J is in units such that \int r x CJPARAMAG dV will yield moment in Bohr magnetons
++! cgs: mu = 1/(2c) \int r x j dV =
++!      1/(2c) e \hbar/m_e \int r x Im(phi nabla phi) dV
++!                    mu_B \int r x Im(phi nabla phi) dV
++! ...
++
++      DEALLOCATE(CWORK1)
++      DEALLOCATE(CWORK2)
++      DEALLOCATE(JVEC_TMP)
++      DEALLOCATE(JVEC)
++      DEALLOCATE(CHDEN_TMP)
++      DEALLOCATE(DIV_J)
++      
++      ! DO I=1,10
++      !    WRITE(*,*) 'J PARA (end) =', CJPARAMAG(I,1),CJPARAMAG(I,2),CJPARAMAG(I,3)
++      ! ENDDO
++      
++      POP_ACC_EXEC_ON
++
++    END SUBROUTINE CURRENT_PARAMAG

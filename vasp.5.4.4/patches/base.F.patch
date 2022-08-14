@@ -1,6 +1,6 @@
 --- DIR_ORIG/base.F	2022-08-13 00:00:00.000000000 -0700
 +++ DIR_NEW/base.F	2022-08-13 00:00:00.000000000 -0700
-@@ -138,0 +139,4 @@
+@@ -116,0 +117,4 @@
 +        LOGICAL LVXC                 ! write XC potential to XCPOT
 +        LOGICAL LSOURCEPOT           ! write source-free Bxc corrections to SOURCEPOT
 +        LOGICAL LAXC                 ! write Axc vector potential to AXCPOT

@@ -1,13 +1,13 @@
 --- DIR_ORIG/main.F	2022-08-13 00:00:00.000000000 -0700
 +++ DIR_NEW/main.F	2022-08-13 00:00:00.000000000 -0700
-@@ -652,0 +653 @@
+@@ -672,0 +673 @@
 +          WDES%LSOURCEFREE,IO%LVXC,IO%LSOURCEPOT,IO%LAXC,IO%LPMCURRENT, &
-@@ -875,0 +877,2 @@
+@@ -805,0 +807,2 @@
 +! sourcefree__
 +      CALL SOURCEFREE_READER(IO%IU0,IO%IU5)
-@@ -1592,0 +1596 @@
+@@ -1485,0 +1489 @@
 +          WDES%LSOURCEFREE,IO%LVXC,IO%LSOURCEPOT,IO%LAXC,IO%LPMCURRENT, &
-@@ -4747,0 +4752,154 @@
+@@ -4299,0 +4304,154 @@
 +
 +      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 +      !! GCM:
