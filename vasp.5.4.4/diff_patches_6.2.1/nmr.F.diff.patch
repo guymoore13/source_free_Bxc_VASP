@@ -3,3 +3,20 @@
 @@ -3 +3 @@
 -@@ -1579,0 +1580,238 @@
 +@@ -1748,0 +1749,238 @@
+@@ -68 +68 @@
+-+      PUSH_ACC_EXEC_ON(.FALSE.)
+++      ! PUSH_ACC_EXEC_ON(.FALSE.)
+@@ -77,5 +77,5 @@
+-+#ifdef MPI
+-+      IF (W%WDES%COMM_KINTER%NCPU.NE.1) THEN
+-+         CALL vtutor%error("CURRENT: KPAR>1 not implemented, sorry.")
+-+      END IF
+-+#endif
+++! #ifdef MPI
+++!       IF (W%WDES%COMM_KINTER%NCPU.NE.1) THEN
+++!          CALL vtutor%error("CURRENT: KPAR>1 not implemented, sorry.")
+++!       END IF
+++! #endif
+@@ -239 +239 @@
+-+      POP_ACC_EXEC_ON
+++      ! POP_ACC_EXEC_ON

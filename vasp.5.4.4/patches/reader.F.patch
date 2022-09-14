@@ -4,19 +4,60 @@
 +     &        LSOURCEFREE,LVXC,LSOURCEPOT,LAXC,LPMCURRENT, &
 @@ -55,0 +57 @@
 +     &          LSOURCEFREE,LVXC,LSOURCEPOT,LAXC,LPMCURRENT, &
-@@ -282,0 +285,15 @@
+@@ -282,0 +285,56 @@
++
 +! read in flag LSOURCEFREE
 +      LSOURCEFREE=.FALSE.
-+      CALL PROCESS_INCAR(LOPEN, IU0, IU5, 'LSOURCEFREE', LSOURCEFREE, IERR, WRITEXMLINCAR)
++      CALL RDATAB(LOPEN,INCAR,IU5,'LSOURCEFREE','=','#',';','L', &
++     &            IDUM,RDUM,CDUM,LSOURCEFREE,CHARAC,N,1,IERR)
++      IF (((IERR/=0).AND.(IERR/=3)).OR. &
++     &                    ((IERR==0).AND.(N<1))) THEN
++         IF (IU0>=0) &
++         WRITE(IU0,*)'Error reading item ''LSOURCEFREE'' from file INCAR.'
++         GOTO 150
++      ENDIF
++      CALL XML_INCAR('LSOURCEFREE','L',IDUM,RDUM,CDUM,LSOURCEFREE,CHARAC,N)
 +! read in flag LVXC
 +      LVXC=.FALSE.
-+      CALL PROCESS_INCAR(LOPEN, IU0, IU5, 'LVXC', LVXC, IERR, WRITEXMLINCAR)
++      CALL RDATAB(LOPEN,INCAR,IU5,'LVXC','=','#',';','L', &
++     &            IDUM,RDUM,CDUM,LVXC,CHARAC,N,1,IERR)
++      IF (((IERR/=0).AND.(IERR/=3)).OR. &
++     &                    ((IERR==0).AND.(N<1))) THEN
++         IF (IU0>=0) &
++         WRITE(IU0,*)'Error reading item ''LVXC'' from file INCAR.'
++         GOTO 150
++      ENDIF
++      CALL XML_INCAR('LVXC','L',IDUM,RDUM,CDUM,LVXC,CHARAC,N)
 +! read in flag LSOURCEPOT
 +      LSOURCEPOT=.FALSE.
-+      CALL PROCESS_INCAR(LOPEN, IU0, IU5, 'LSOURCEPOT', LSOURCEPOT, IERR, WRITEXMLINCAR)
++      CALL RDATAB(LOPEN,INCAR,IU5,'LSOURCEPOT','=','#',';','L', &
++     &            IDUM,RDUM,CDUM,LSOURCEPOT,CHARAC,N,1,IERR)
++      IF (((IERR/=0).AND.(IERR/=3)).OR. &
++     &                    ((IERR==0).AND.(N<1))) THEN
++         IF (IU0>=0) &
++         WRITE(IU0,*)'Error reading item ''LSOURCEPOT'' from file INCAR.'
++         GOTO 150
++      ENDIF
++      CALL XML_INCAR('LSOURCEPOT','L',IDUM,RDUM,CDUM,LSOURCEPOT,CHARAC,N)
 +! read in flag LAXC
 +      LAXC=.FALSE.
-+      CALL PROCESS_INCAR(LOPEN, IU0, IU5, 'LAXC', LAXC, IERR, WRITEXMLINCAR)
++      CALL RDATAB(LOPEN,INCAR,IU5,'LAXC','=','#',';','L', &
++     &            IDUM,RDUM,CDUM,LAXC,CHARAC,N,1,IERR)
++      IF (((IERR/=0).AND.(IERR/=3)).OR. &
++     &                    ((IERR==0).AND.(N<1))) THEN
++         IF (IU0>=0) &
++         WRITE(IU0,*)'Error reading item ''LAXC'' from file INCAR.'
++         GOTO 150
++      ENDIF
++      CALL XML_INCAR('LAXC','L',IDUM,RDUM,CDUM,LAXC,CHARAC,N)
 +! read in flag LPMCURRENT
 +      LPMCURRENT=.FALSE.
-+      CALL PROCESS_INCAR(LOPEN, IU0, IU5, 'LPMCURRENT', LPMCURRENT, IERR, WRITEXMLINCAR)
++      CALL RDATAB(LOPEN,INCAR,IU5,'LPMCURRENT','=','#',';','L', &
++     &            IDUM,RDUM,CDUM,LPMCURRENT,CHARAC,N,1,IERR)
++      IF (((IERR/=0).AND.(IERR/=3)).OR. &
++     &                    ((IERR==0).AND.(N<1))) THEN
++         IF (IU0>=0) &
++         WRITE(IU0,*)'Error reading item ''LPMCURRENT'' from file INCAR.'
++         GOTO 150
++      ENDIF
++      CALL XML_INCAR('LPMCURRENT','L',IDUM,RDUM,CDUM,LPMCURRENT,CHARAC,N)

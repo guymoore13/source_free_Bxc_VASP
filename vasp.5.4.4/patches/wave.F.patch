@@ -2,5 +2,7 @@
 +++ DIR_NEW/wave.F	2022-08-13 00:00:00.000000000 -0700
 @@ -96,0 +97 @@
 +     LOGICAL LSOURCEFREE           ! apply div(Bxc)=0 constraint
-@@ -169,0 +171,1 @@
+@@ -169,0 +171 @@
 +     LOGICAL LSOURCEFREE           ! apply div(Bxc)=0 constraint
+@@ -822,0 +825 @@
++    WDES1%LSOURCEFREE=WDES%LSOURCEFREE  

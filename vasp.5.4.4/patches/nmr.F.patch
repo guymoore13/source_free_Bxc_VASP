@@ -65,7 +65,7 @@
 +! 4 grid points around the step function are usually a good choice
 +      REAL(q), PARAMETER :: WIDTH=4
 +      
-+      PUSH_ACC_EXEC_ON(.FALSE.)
++      ! PUSH_ACC_EXEC_ON(.FALSE.)
 +      
 +      ! WRITE(*,*) 'HERE PM! 0'
 +      
@@ -74,11 +74,11 @@
 +      ACC_ASYNC_Q=ACC_ASYNC_SYNC
 +#endif
 +
-+#ifdef MPI
-+      IF (W%WDES%COMM_KINTER%NCPU.NE.1) THEN
-+         CALL vtutor%error("CURRENT: KPAR>1 not implemented, sorry.")
-+      END IF
-+#endif
++! #ifdef MPI
++!       IF (W%WDES%COMM_KINTER%NCPU.NE.1) THEN
++!          CALL vtutor%error("CURRENT: KPAR>1 not implemented, sorry.")
++!       END IF
++! #endif
 +!test reallocate the P%JPAW array
 +      DO NT=1,SIZE(P)
 +         IF ( ASSOCIATED(P(NT)%JPAW)) DEALLOCATE(P(NT)%JPAW)
@@ -236,6 +236,6 @@
 +      !    WRITE(*,*) 'J PARA (end) =', CJPARAMAG(I,1),CJPARAMAG(I,2),CJPARAMAG(I,3)
 +      ! ENDDO
 +      
-+      POP_ACC_EXEC_ON
++      ! POP_ACC_EXEC_ON
 +
 +    END SUBROUTINE CURRENT_PARAMAG
