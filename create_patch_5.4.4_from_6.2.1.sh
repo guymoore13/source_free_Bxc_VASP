@@ -1,3 +1,4 @@
+#!/bin/bash
 
 DIFFPATCHDIRNAME="./vasp.5.4.4/diff_patches_6.2.1"
 PATCHDIRNAME_A="./vasp.5.4.4/patches"
