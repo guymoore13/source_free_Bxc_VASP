@@ -31,6 +31,8 @@ The installation script will walk you through the relevant installation steps, i
 
 ## Visualization
 
+![cover](Mn3ZnN_source_free.png)
+
 ## How to cite
 
 ## License
