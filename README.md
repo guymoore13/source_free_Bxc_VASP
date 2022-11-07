@@ -29,3 +29,8 @@ The installation script will walk you through the relevant installation steps, i
     - `LAXC`: set to `True` to write $A_{xc}$ to the `AXCPOT` file.
     - `LPMCURRENT`: set to `True` to write $j_p$ to the `JPARAMAG` file.
 
+## Visualization
+
+## How to cite
+
+## License
