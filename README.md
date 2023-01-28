@@ -27,11 +27,17 @@ The installation script will walk you through the relevant installation steps, i
     - `LVXC`: set to `True` to write $v_{xc}$ and $B_{xc}$ to the `XCPOT` file.
     - `LSOURCEPOT`: set to `True` to write $\nabla \phi$ to the `SOURCEPOT` file.
     - `LAXC`: set to `True` to write $A_{xc}$ to the `AXCPOT` file.
-    - `LPMCURRENT`: set to `True` to write $j_p$ to the `JPARAMAG` file.
+    - `LPMCURRENT`: set to `True` to write $j_p$ to the `JPARAMAG` file. Based on error messages from VASP, the paramagnetic current can only be calculated when `KPAR=1`.
+
+To keep with the conventions of VASP, most of the volumetric data files (`XCPOT`, `SOURCEPOT`, and `AXCPOT`) are written in the format of the noncollinear [CHGCAR](https://www.vasp.at/wiki/index.php/CHGCAR#Noncollinear_magnetism) ( $\rho$, $m_x$, $m_y$, $m_z$ ). For the `XCPOT`, the first, ${\rho}$-component is the self-consistent $\nabla \cdot B_{xc}$, and the latter three indices contain the $x$, $y$, and $z$ components of $B_{xc}$.
 
 ## Visualization
 
-![cover](Mn3ZnN_source_free.png)
+A Jupyter notebook has been included, `visualization/Bxc_visualize.ipynb`. This minimal notebook provides the user with the means to plot $B_{xc}$, and other fields output by the patch using `plotly` and `pymatgen`, as well as other Python packages.
+
+As an example, below is a visualization of the magnetization (from `CHGCAR`), $m(r)$, as a vector field, as well as $B_{xc}(r)$ (from `XCPOT`) as streamlines (`plotly`'s `Streamtube`), for the source-free ground-state of Mn<sub>3</sub>ZnN.
+
+<img src="Mn3ZnN_source_free.png" alt="fields" width="600"/>
 
 ## How to cite
 
