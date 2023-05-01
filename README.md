@@ -1,4 +1,4 @@
-# source_free_Bxc_VASP
+# `source_free_Bxc_VASP`
 
 ## Introduction
 
