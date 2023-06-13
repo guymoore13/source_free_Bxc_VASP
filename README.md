@@ -37,7 +37,7 @@ A Jupyter notebook has been included, `visualization/Bxc_visualize.ipynb`. This 
 
 As an example, below is a visualization of the magnetization (from `CHGCAR`), $m(r)$, as a vector field, as well as $B_{xc}(r)$ (from `XCPOT`) as streamlines (`plotly`'s `Streamtube`), for the source-free ground-state of Mn<sub>3</sub>ZnN.
 
-<img src="Mn3ZnN_source_free.png" alt="fields" width="600"/>
+<img src="Mn3ZnN_source_free.html" alt="fields" width="600"/>
 
 ## How to cite
 
