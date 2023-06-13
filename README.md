@@ -43,4 +43,4 @@ As an example, below is a visualization of the magnetization (from `CHGCAR`), $m
 
 ## License
 
-This repository is licensed under and MIT License shown in `LICENSE.md`.
+This repository is licensed under and MIT License shown in `LICENSE`.
