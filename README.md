@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This code repository contains the necessary patch files for the implementation of the source-free constraint on $B_{xc}$ ( $\nabla \cdot B_{xc} = 0$ ) in VASP, which we explore in [this paper](preprint_url). Our implementation follows from the work of [Sharma et al.](https://pubs.acs.org/doi/10.1021/acs.jctc.7b01049), with the key distinction that we do not include the magnetization rescaling (i.e. $s = 0$ ).
+This code repository contains the necessary patch files for the implementation of the source-free constraint on $B_{xc}$ ( $\nabla \cdot B_{xc} = 0$ ) in VASP, which we explore in [this paper](preprint_url). Our implementation follows from the work of [Sharma et al.](https://pubs.acs.org/doi/10.1021/acs.jctc.7b01049), with the key distinction that we do not include the magnetization rescaling (i.e. $s = 1$ ).
 
 Our implementation involves the use of parallel three-dimensional Fast Fourier Transforms in order to solve the Poisson equation for the sources in the original $B_{xc}$. Therefore it is quite efficient and requires little additional computational cost compared to noncollinear VASP.
 
