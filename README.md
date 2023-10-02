@@ -41,6 +41,21 @@ As an example, below is a visualization of the magnetization (from `CHGCAR`), $m
 
 ## How to cite
 
+Below is a citation to our manuscript, as a bibTex entry:
+```
+@misc{mooreRealisticNoncollinearSourceFree2023,
+	title = {Realistic non-collinear ground states of solids with source-free exchange correlation functional},
+	url = {http://arxiv.org/},
+	urldate = {2023-10-02},
+	publisher = {arXiv},
+	author = {Moore, Guy C. and Horton, Matthew K. and Kaplan, Aaron D. and Griffin, Sin\'ead M. and Persson, Kristin A.},
+	month = oct,
+	year = {2023},
+	note = {arXiv [cond-mat]},
+	keywords = {Condensed Matter - Materials Science},
+}
+```
+
 ## License
 
 This repository is licensed under and MIT License shown in `LICENSE`.
