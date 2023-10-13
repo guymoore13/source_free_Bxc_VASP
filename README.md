@@ -45,13 +45,13 @@ Below is a citation to our manuscript, as a bibTex entry:
 ```
 @misc{mooreRealisticNoncollinearSourceFree2023,
 	title = {Realistic non-collinear ground states of solids with source-free exchange correlation functional},
-	url = {http://arxiv.org/},
-	urldate = {2023-10-02},
+	url = {http://arxiv.org/abs/2310.00114},
+	urldate = {2023-10-03},
 	publisher = {arXiv},
-	author = {Moore, Guy C. and Horton, Matthew K. and Kaplan, Aaron D. and Griffin, Sin\'ead M. and Persson, Kristin A.},
-	month = oct,
+	author = {Moore, Guy C. and Horton, Matthew K. and Kaplan, Aaron D. and Griffin, Sinéad M. and Persson, Kristin A.},
+	month = sep,
 	year = {2023},
-	note = {arXiv [cond-mat]},
+	note = {arXiv:2310.00114 [cond-mat]},
 	keywords = {Condensed Matter - Materials Science},
 }
 ```
