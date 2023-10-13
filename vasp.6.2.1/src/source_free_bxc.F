@@ -14,6 +14,8 @@
 ! Source-free Bxc is obtained by subtracting off the
 ! unphysical magnetic monopoles contained in grad(phi)
 ! 
+! Code credit: Based on functionality contained in xcspin.F
+! 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       SUBROUTINE SOURCEFREE_READER(IU0,IU5)
