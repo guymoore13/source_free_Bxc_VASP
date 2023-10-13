@@ -29,7 +29,7 @@ The installation script will walk you through the relevant installation steps, i
     - `LAXC`: set to `True` to write $A_{xc}$ to the `AXCPOT` file.
     - `LPMCURRENT`: set to `True` to write $j_p$ to the `JPARAMAG` file. Based on error messages from VASP, the paramagnetic current can only be calculated when `KPAR=1`.
 
-To keep with the conventions of VASP, most of the volumetric data files (`XCPOT`, `SOURCEPOT`, and `AXCPOT`) are written in the format of the noncollinear [CHGCAR](https://www.vasp.at/wiki/index.php/CHGCAR#Noncollinear_magnetism) ( $\rho$, $m_x$, $m_y$, $m_z$ ). For the `XCPOT`, the first, ${\rho}$-component is the self-consistent $\nabla \cdot B_{xc}$, and the latter three indices contain the $x$, $y$, and $z$ components of $B_{xc}$.
+In keeping with the conventions of VASP, most of the volumetric data files (`XCPOT`, `SOURCEPOT`, and `AXCPOT`) are written in the format of the noncollinear [CHGCAR](https://www.vasp.at/wiki/index.php/CHGCAR#Noncollinear_magnetism) ( $\rho$, $m_x$, $m_y$, $m_z$ ). For the `XCPOT`, the first, ${\rho}$-component is the self-consistent $\nabla \cdot B_{xc}$, and the latter three indices contain the $x$, $y$, and $z$ components of $B_{xc}$.
 
 ## Visualization
 
