@@ -211,20 +211,7 @@
 !$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
 !$ACC UPDATE SELF(DWORK) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
 
-      WRITE(*,*) '>>> MODIFICATION (GCM): Divergence-free Bxc constraint applied'
-
-!! !$ACC UPDATE SELF(DWGRAD,DWORK) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
-!       DO I=1,GRIDC%RL%NP
-!       !DO I=1,100
-!          WRITE(*,*) 'Corrections = ',DWGRAD(I,1),DWGRAD(I,2),DWGRAD(I,3),DWGRAD(I,4)
-!          WRITE(*,*) 'Bxc = ',DWORK(I,2),DWORK(I,3),DWORK(I,4)
-!       ENDDO
-
-      ! WRITE(*,*), 'Output A:'
-      ! DO I=1,GRIDC%RL%NP
-      !    WRITE(*,*) REAL( DWGRAD(I,1), KIND=q)
-      ! ENDDO
-      ! WRITE(*,*), 'End output A'
+!       WRITE(*,*) '>>> MODIFICATION (GCM): Divergence-free Bxc constraint applied'
 
       RETURN
       END SUBROUTINE
