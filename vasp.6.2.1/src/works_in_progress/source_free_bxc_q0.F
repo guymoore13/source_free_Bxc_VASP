@@ -78,19 +78,25 @@
       COMPLEX(q),ALLOCATABLE:: CWORK0(:,:), CWGRAD(:,:), CWGRAD0(:,:)
 !vdw jk
 
+      REAL(q) TOT_MAG(3), BXC_ORIG_0(3), BXC_0(3), TAU_NET(3) 
+      REAL(q) EMBXC, TOT_MAG_SQ
+
       NP1=GRIDC%RL%NP
       IF (NCDIJ==4) THEN
 
 !vdw jk
          ALLOCATE(CWORK0(GRIDC%MPLWV,NCDIJ), CWGRAD(GRIDC%MPLWV,NCDIJ), CWGRAD0(GRIDC%MPLWV,NCDIJ))
 !$ACC ENTER DATA CREATE(CWORK0, CWGRAD, CWGRAD0) __IF_ASYNC__
+!$ACC ENTER DATA CREATE(TOT_MAG, BXC_ORIG_0, BXC_0, TAU_NET, EMBXC, TOT_MAG_SQ) __IF_ASYNC__
 
          CALL SOURCE_FREE_NONCOL_(NCDIJ,GRIDC,LATT_CUR, &
         &            CHTOT,CWORK,CWORK0,CWGRAD,CWGRAD0, &
         &            CHTOT,CWORK,CWORK0,CWGRAD,CWGRAD0, &
+        &            TOT_MAG,BXC_ORIG_0,BXC_0,TAU_NET,EMBXC,TOT_MAG_SQ, &
         &            SOURCEOUT)
 
 !$ACC EXIT DATA DELETE(CWORK0, CWGRAD, CWGRAD0) __IF_ASYNC__
+!$ACC EXIT DATA DELETE(TOT_MAG, BXC_ORIG_0, BXC_0, TAU_NET, EMBXC, TOT_MAG_SQ) __IF_ASYNC__
 !$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
          DEALLOCATE(CWORK0, CWGRAD, CWGRAD0)
 !vdw jk
@@ -103,8 +109,10 @@
       SUBROUTINE SOURCE_FREE_NONCOL_(NCDIJ,GRIDC,LATT_CUR, &
      &            CHTOT,CWORK,CWORK0,CWGRAD,CWGRAD0, &
      &            DHTOT,DWORK,DWORK0,DWGRAD,DWGRAD0, &
+     &            TOT_MAG,BXC_ORIG_0,BXC_0,TAU_NET,EMBXC,TOT_MAG_SQ, &
      &            SOURCEOUT)
 #ifdef _OPENACC
+      USE mopenacc
       USE mopenacc_struct_def
 #endif
       USE prec
@@ -129,14 +137,15 @@
               DWGRAD(DIMREAL(GRIDC%MPLWV),NCDIJ), DWGRAD0(DIMREAL(GRIDC%MPLWV),NCDIJ)
       INTEGER SOURCEOUT
 
-      INTEGER :: ISFTOGGLE
-      REAL(q) :: RSCALE
+      REAL(q) TOT_MAG(3), BXC_ORIG_0(3), BXC_0(3), TAU_NET(3) 
+      REAL(q) EMBXC, TOT_MAG_SQ
 
-      REAL(q) :: TOT_MAG(3), BXC_ORIG_0(3), BXC_0(3), TAU_NET(3) 
-      REAL(q) :: EMBXC, TOT_MAG_SQ
+      INTEGER :: ISFTOGGLE
+      REAL(q) :: RSCALE, RINPL
 
       ! FFT weighting
       RSCALE = GRIDC%NGX * GRIDC%NGY * GRIDC%NGZ
+      RINPL = 1.0_q/GRIDC%NPLWV
 
 !$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
 !$ACC UPDATE SELF(DWORK) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
@@ -171,23 +180,15 @@
       ! solve for grad(phi) using Poisson eqn. solution to Bxc = curl(Axc) + grad(phi)
       CALL POISSON_SOLVER_RHS_A(NCDIJ,GRIDC,LATT_CUR,CWGRAD,CWORK,DWGRAD,DWORK)
 
+!$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
 !$ACC UPDATE SELF(DWORK0) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
 
       IF (SOURCEOUT==0) THEN
 
-         ! Calculate q=0 magnetization
-         CALL GET_NET_MAG(NCDIJ,GRIDC,LATT_CUR,TOT_MAG,CHTOT,DHTOT)
-
-         ! Calculate q=0 Bxc (original)
-         CALL GET_NET_MAG(NCDIJ,GRIDC,LATT_CUR,BXC_ORIG_0,CWORK,DWORK)
-         DO ISP=1,3
-            BXC_ORIG_0(ISP) = BXC_ORIG_0(ISP) / LATT_CUR%OMEGA
-         ENDDO
-
          ! Subtract off gradient source term
          ISFTOGGLE = 1           ! source-free correction
 
-!$ACC PARALLEL LOOP PRESENT(DWORK,DWORK0,DWGRAD) __IF_ASYNC__
+!$ACC PARALLEL LOOP PRESENT(DWORK,DWGRAD) __IF_ASYNC__
          DO I=1,GRIDC%RL%NP
             DWORK(I,1) = REAL( DWORK0(I,1), KIND=q)
             DWORK(I,2) = REAL( DWORK0(I,2) - ISFTOGGLE * DWGRAD(I,2), KIND=q)
@@ -195,47 +196,123 @@
             DWORK(I,4) = REAL( DWORK0(I,4) - ISFTOGGLE * DWGRAD(I,4), KIND=q)
          ENDDO
 
+!$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
+! !$ACC UPDATE SELF(CHTOT,DHTOT) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
 !$ACC UPDATE SELF(CWORK,DWORK) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
+!$ACC UPDATE SELF(CWGRAD,DWGRAD) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
+!$ACC UPDATE SELF(CWORK0,DWORK0) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
+         ! PUSH_ACC_EXEC_ON(.FALSE.)
 
          !!!!!!!!!!!!
          ! Treat q=0 component of Bxc
 
+         DO ISP=1,3
+            TOT_MAG(ISP) = 0.0_q
+            BXC_ORIG_0(ISP) = 0.0_q
+            BXC_0(ISP) = 0.0_q
+            TAU_NET(ISP) = 0.0_q
+         ENDDO
+         EMBXC = 0.0_q
+         
+!$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
+!$ACC UPDATE SELF(TOT_MAG,BXC_ORIG_0,BXC_0,TAU_NET,EMBXC) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
+
+         ! Calculate q=0 magnetization
+         CALL GET_NET_MAG(NCDIJ,GRIDC,LATT_CUR,TOT_MAG,CHTOT,DHTOT)
+
+!$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
+!$ACC UPDATE SELF(TOT_MAG,BXC_ORIG_0,BXC_0,TAU_NET,EMBXC) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
+
+         ! io_begin
+         ! WRITE(*,'(A,F24.14,F24.14,F24.14)') 'MAG TOT =',TOT_MAG(1),TOT_MAG(2),TOT_MAG(3)
+         ! io_end
+
+         ! Calculate q=0 Bxc (original)
+         CALL GET_NET_MAG(NCDIJ,GRIDC,LATT_CUR,BXC_ORIG_0,CWORK0,DWORK0)
+         
+!$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
+!$ACC UPDATE SELF(TOT_MAG,BXC_ORIG_0,BXC_0,TAU_NET,EMBXC) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
+
+         ! DO ISP=1,3
+         !    BXC_ORIG_0(ISP) = BXC_ORIG_0(ISP)
+         ! ENDDO
+         
+!$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
+!$ACC UPDATE SELF(TOT_MAG,BXC_ORIG_0,BXC_0,TAU_NET,EMBXC) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
+
          CALL GET_NET_TORQUE(NCDIJ,GRIDC,LATT_CUR,TAU_NET,CWORK,CHTOT,DWORK,DHTOT)
+         !! CALL GET_NET_TORQUE(NCDIJ,GRIDC,LATT_CUR,TAU_NET,CWGRAD,CHTOT,DWGRAD,DHTOT)
+
+!$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
+!$ACC UPDATE SELF(TOT_MAG,BXC_ORIG_0,BXC_0,TAU_NET,EMBXC) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
+
          ! Add constant term to tau
-         TAU_NET(1) = TAU_NET(1) - (TOT_MAG(2)*BXC_ORIG_0(3) - TOT_MAG(3)*BXC_ORIG_0(2))
-         TAU_NET(2) = TAU_NET(2) - (TOT_MAG(3)*BXC_ORIG_0(1) - TOT_MAG(1)*BXC_ORIG_0(3))
-         TAU_NET(3) = TAU_NET(3) - (TOT_MAG(1)*BXC_ORIG_0(2) - TOT_MAG(2)*BXC_ORIG_0(1))
+         TAU_NET(1) = TAU_NET(1) - (TOT_MAG(2)*BXC_ORIG_0(3) - TOT_MAG(3)*BXC_ORIG_0(2)) * RINPL/LATT_CUR%OMEGA
+         TAU_NET(2) = TAU_NET(2) - (TOT_MAG(3)*BXC_ORIG_0(1) - TOT_MAG(1)*BXC_ORIG_0(3)) * RINPL/LATT_CUR%OMEGA
+         TAU_NET(3) = TAU_NET(3) - (TOT_MAG(1)*BXC_ORIG_0(2) - TOT_MAG(2)*BXC_ORIG_0(1)) * RINPL/LATT_CUR%OMEGA
 
          CALL GET_E_M_BXC(NCDIJ,GRIDC,LATT_CUR,EMBXC,CWGRAD,CHTOT,DWGRAD,DHTOT)
          ! Add constant term to Em
          DO ISP=1,3
-            EMBXC = EMBXC + TOT_MAG(ISP)*BXC_ORIG_0(ISP)
+            EMBXC = EMBXC + TOT_MAG(ISP)*BXC_ORIG_0(ISP) * RINPL/LATT_CUR%OMEGA
          ENDDO
-
-!$ACC UPDATE SELF(TOT_MAG,TAU_NET,EMBXC) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
 
          TOT_MAG_SQ = TOT_MAG(1)*TOT_MAG(1) + TOT_MAG(2)*TOT_MAG(2) + TOT_MAG(3)*TOT_MAG(3)
 
-         IF (TOT_MAG_SQ < 1.0e-12) THEN
-            BXC_0(1) = 0.0
-            BXC_0(2) = 0.0
-            BXC_0(3) = 0.0
-         ELSE
-            BXC_0(1) = (1.0/TOT_MAG_SQ) * TOT_MAG(1) * EMBXC
-            BXC_0(2) = (1.0/TOT_MAG_SQ) * TOT_MAG(2) * EMBXC
-            BXC_0(3) = (1.0/TOT_MAG_SQ) * TOT_MAG(3) * EMBXC
+!$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
+!$ACC UPDATE SELF(TOT_MAG,BXC_ORIG_0,BXC_0,TAU_NET,EMBXC) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
 
-            BXC_0(1) = BXC_0(1) + (1.0/TOT_MAG_SQ) * (TOT_MAG(2)*TAU_NET(3) - TOT_MAG(3)*TAU_NET(2))
-            BXC_0(2) = BXC_0(2) + (1.0/TOT_MAG_SQ) * (TOT_MAG(3)*TAU_NET(1) - TOT_MAG(1)*TAU_NET(3))
-            BXC_0(3) = BXC_0(3) + (1.0/TOT_MAG_SQ) * (TOT_MAG(1)*TAU_NET(2) - TOT_MAG(2)*TAU_NET(1))
+         IF (TOT_MAG_SQ < 1.0E-12_q) THEN
+            BXC_0(1) = 0.0_q
+            BXC_0(2) = 0.0_q
+            BXC_0(3) = 0.0_q
+         ELSE
+            BXC_0(1) = (1.0_q/TOT_MAG_SQ) * TOT_MAG(1) * EMBXC
+            BXC_0(2) = (1.0_q/TOT_MAG_SQ) * TOT_MAG(2) * EMBXC
+            BXC_0(3) = (1.0_q/TOT_MAG_SQ) * TOT_MAG(3) * EMBXC
+
+            BXC_0(1) = BXC_0(1) + (1.0_q/TOT_MAG_SQ) * (TOT_MAG(2)*TAU_NET(3) - TOT_MAG(3)*TAU_NET(2))
+            BXC_0(2) = BXC_0(2) + (1.0_q/TOT_MAG_SQ) * (TOT_MAG(3)*TAU_NET(1) - TOT_MAG(1)*TAU_NET(3))
+            BXC_0(3) = BXC_0(3) + (1.0_q/TOT_MAG_SQ) * (TOT_MAG(1)*TAU_NET(2) - TOT_MAG(2)*TAU_NET(1))
          ENDIF
+
+!$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
+!$ACC UPDATE SELF(TOT_MAG,BXC_ORIG_0,BXC_0,TAU_NET,EMBXC) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
 
 !$ACC PARALLEL LOOP PRESENT(DWORK,BXC_0,BXC_ORIG_0) __IF_ASYNC__
          DO I=1,GRIDC%RL%NP
-            DWORK(I,2) = DWORK(I,2) + ISFTOGGLE * (BXC_0(1) - BXC_ORIG_0(1))
-            DWORK(I,3) = DWORK(I,3) + ISFTOGGLE * (BXC_0(2) - BXC_ORIG_0(2))
-            DWORK(I,4) = DWORK(I,4) + ISFTOGGLE * (BXC_0(3) - BXC_ORIG_0(3))
+            DWORK(I,2) = DWORK(I,2) + ISFTOGGLE * (1.0_q * BXC_0(1) - 1.0_q * BXC_ORIG_0(1))
+            DWORK(I,3) = DWORK(I,3) + ISFTOGGLE * (1.0_q * BXC_0(2) - 1.0_q * BXC_ORIG_0(2))
+            DWORK(I,4) = DWORK(I,4) + ISFTOGGLE * (1.0_q * BXC_0(3) - 1.0_q * BXC_ORIG_0(3))
          ENDDO
+
+         ! DO I=1,GRIDC%RL%NP
+         !    DWORK(I,2) = 0.0
+         !    DWORK(I,3) = 0.0
+         !    DWORK(I,4) = 0.0
+         ! ENDDO
+
+         io_begin
+         WRITE(*,'(A,F24.14,F24.14,F24.14)') 'MAG TOT =',TOT_MAG(1),TOT_MAG(2),TOT_MAG(3)
+         WRITE(*,'(A,F24.14,F24.14,F24.14)') 'BXC_0 ORIG =',BXC_ORIG_0(1),BXC_ORIG_0(2),BXC_ORIG_0(3)
+         WRITE(*,'(A,F24.14,F24.14,F24.14)') 'BXC_0 SF =',BXC_0(1),BXC_0(2),BXC_0(3)
+         ! WRITE(*,'(A,F24.14,F24.14,F24.14)') 'TORQUE NET =',TAU_NET(1),TAU_NET(2),TAU_NET(3)
+         WRITE(*,'(A,F24.14)') 'TAU X =',TAU_NET(1)
+         WRITE(*,'(A,F24.14)') 'TAU Y =',TAU_NET(2)
+         WRITE(*,'(A,F24.14)') 'TAU Z =',TAU_NET(3)
+         WRITE(*,'(A,F24.14)') 'ENERGY =',EMBXC
+         ! WRITE(*,'(A,F24.14,F24.14)') 'RSCALE, 1/RINPL =',RSCALE,1.0_q/RINPL
+         io_end
+
+         ! POP_ACC_EXEC_ON
+!$ACC UPDATE SELF(CWORK,DWORK) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
+!$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
+
+         ! io_begin
+         ! WRITE(*,'(A,F24.14,F24.14,F24.14)') 'MAG TOT =',TOT_MAG(1),TOT_MAG(2),TOT_MAG(3)
+         ! WRITE(*,'(A,F24.14,F24.14,F24.14)') 'BXC_0 ORIG =',BXC_ORIG_0(1),BXC_ORIG_0(2),BXC_ORIG_0(3)
+         ! WRITE(*,'(A,F24.14,F24.14,F24.14)') 'BXC_0 SF =',BXC_0(1),BXC_0(2),BXC_0(3)
+         ! io_end
 
          !!!!!!!!!!!!
 
@@ -267,7 +344,7 @@
 !$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
 !$ACC UPDATE SELF(DWORK) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
 
-!       WRITE(*,*) '>>> MODIFICATION (GCM): Divergence-free Bxc constraint applied'
+      WRITE(*,*) '>>> MODIFICATION (GCM): Divergence-free Bxc constraint applied'
 
       RETURN
       END SUBROUTINE
@@ -336,13 +413,13 @@
          ! compute div(Bxc) in Fourier space
          CWGRAD(I,1)= CWORK(I,2)*GX*CITPI
          CWGRAD(I,1)= CWORK(I,3)*GY*CITPI + CWGRAD(I,1)
-         CWGRAD(I,1)=(CWORK(I,4)*GZ*CITPI + CWGRAD(I,1)) * (1.0/RSCALE)
+         CWGRAD(I,1)=(CWORK(I,4)*GZ*CITPI + CWGRAD(I,1)) * (1.0_q/RSCALE)
 
          ! solve Poisson equation
-         IF (GG==0.0) THEN
-            CWGRAD(I,2)=0.0 * CWGRAD(I,1)
-            CWGRAD(I,3)=0.0 * CWGRAD(I,1)
-            CWGRAD(I,4)=0.0 * CWGRAD(I,1)
+         IF (GG==0.0_q) THEN
+            CWGRAD(I,2)=0.0_q * CWGRAD(I,1)
+            CWGRAD(I,3)=0.0_q * CWGRAD(I,1)
+            CWGRAD(I,4)=0.0_q * CWGRAD(I,1)
          ELSE
             CWGRAD(I,2)=CWGRAD(I,1) * GX*CITPI / GG
             CWGRAD(I,3)=CWGRAD(I,1) * GY*CITPI / GG
@@ -354,7 +431,7 @@
 !$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
 !$ACC UPDATE SELF(DWGRAD,CWGRAD) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
 
-      ! Convert div(B) (ISP=1) and grad(phi) (ISP=2,3,4) back to real space
+      ! Transform div(B) (ISP=1) and grad(phi) (ISP=2,3,4) back to real space
       DO ISP=1,4
 !$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
          CALL SETUNB(CWGRAD(1,ISP),GRIDC)
@@ -426,14 +503,14 @@
          ! Laplacian in Fourier space
          GG = (GX*GX + GY*GY + GZ*GZ) * CITPI*CITPI
 
-         IF (GG==0.0) THEN
-            CWGRAD(I,2)=0.0 * CWGRAD(I,2)
-            CWGRAD(I,3)=0.0 * CWGRAD(I,3)
-            CWGRAD(I,4)=0.0 * CWGRAD(I,4)
+         IF (GG==0.0_q) THEN
+            CWGRAD(I,2)=0.0_q * CWGRAD(I,2)
+            CWGRAD(I,3)=0.0_q * CWGRAD(I,3)
+            CWGRAD(I,4)=0.0_q * CWGRAD(I,4)
          ELSE
-            CWGRAD(I,2)= - (1.0/RSCALE)*(CWORK(I,4)*GY - CWORK(I,3)*GZ)*CITPI/GG
-            CWGRAD(I,3)= - (1.0/RSCALE)*(CWORK(I,2)*GZ - CWORK(I,4)*GX)*CITPI/GG
-            CWGRAD(I,4)= - (1.0/RSCALE)*(CWORK(I,3)*GX - CWORK(I,2)*GY)*CITPI/GG
+            CWGRAD(I,2)= - (1.0_q/RSCALE)*(CWORK(I,4)*GY - CWORK(I,3)*GZ)*CITPI/GG
+            CWGRAD(I,3)= - (1.0_q/RSCALE)*(CWORK(I,2)*GZ - CWORK(I,4)*GX)*CITPI/GG
+            CWGRAD(I,4)= - (1.0_q/RSCALE)*(CWORK(I,3)*GX - CWORK(I,2)*GY)*CITPI/GG
          ENDIF
 
       ENDDO
@@ -441,7 +518,7 @@
 !$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
 !$ACC UPDATE SELF(CWGRAD) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
 
-      ! Convert Axc (ISP=2,3,4) back to real space
+      ! Transform Axc (ISP=2,3,4) back to real space
       DO ISP=2,4
 !$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
          CALL SETUNB(CWGRAD(1,ISP),GRIDC)
@@ -462,76 +539,102 @@
 
       SUBROUTINE GET_NET_MAG(NCDIJ,GRIDC,LATT_CUR, &
      &            TOT_MAG,CWORK,DWORK)
-#ifdef _OPENACC
-      USE mopenacc_struct_def
-#endif
       USE prec
       USE lattice
       USE mpimy
       USE mgrid
       USE constant
       USE setexm
-
+      
+      ! IMPLICIT NONE
       IMPLICIT COMPLEX(q) (C)
-
       IMPLICIT REAL(q) (A-B,D-H,O-Z)
 
+      ! INTEGER            NCDIJ,ISP,I
       TYPE (grid_3d)     GRIDC
       TYPE (latt)        LATT_CUR
 
+      REAL(q) TOT_MAG(3)
+
       COMPLEX(q) CWORK(GRIDC%MPLWV,NCDIJ)
       RGRID   DWORK(DIMREAL(GRIDC%MPLWV),NCDIJ)
-      REAL(q) TOT_MAG(3)
 
       REAL(q) TMAG_TEMP
 
+!$ACC ENTER DATA CREATE(TMAG_TEMP) __IF_ASYNC__
+
+!$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
+!$ACC UPDATE SELF(TMAG_TEMP) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
+
       DO ISP=1,3
-         TOT_MAG(ISP) = 0.0
+         TOT_MAG(ISP) = 0.0_q
       ENDDO
 !$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
 !$ACC UPDATE SELF(TOT_MAG) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
 
       ! x-component of torque
-      TMAG_TEMP = 0.0
-!$ACC PARALLEL LOOP GANG VECTOR PRESENT(DWORK,DWGRAD) &
+      TMAG_TEMP = 0.0_q
+!DIR$ IVDEP
+!$DIR FORCE_VECTOR
+!OCL NOVREC
+!$ACC PARALLEL LOOP PRESENT(DWORK) &
 !$ACC& REDUCTION(+:TMAG_TEMP) __IF_ASYNC__
       DO I=1,GRIDC%RL%NP
          TMAG_TEMP = TMAG_TEMP + DWORK(I,2)
       ENDDO
 !$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
 !$ACC UPDATE SELF(TMAG_TEMP) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
-      CALLMPI( M_sum_d( GRID%COMM, TMAG_TEMP, 1) )
       TOT_MAG(1) = TMAG_TEMP
 
+!$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
+!$ACC UPDATE SELF(TOT_MAG) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
+
       ! y-component of torque
-      TMAG_TEMP = 0.0
-!$ACC PARALLEL LOOP GANG VECTOR PRESENT(DWORK,DWGRAD) &
+      TMAG_TEMP = 0.0_q
+!DIR$ IVDEP
+!$DIR FORCE_VECTOR
+!OCL NOVREC
+!$ACC PARALLEL LOOP PRESENT(DWORK) &
 !$ACC& REDUCTION(+:TMAG_TEMP) __IF_ASYNC__
       DO I=1,GRIDC%RL%NP
          TMAG_TEMP = TMAG_TEMP + DWORK(I,3)
       ENDDO
 !$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
 !$ACC UPDATE SELF(TMAG_TEMP) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
-      CALLMPI( M_sum_d( GRID%COMM, TMAG_TEMP, 1) )
       TOT_MAG(2) = TMAG_TEMP
 
+!$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
+!$ACC UPDATE SELF(TOT_MAG) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
+
       ! z-component of torque
-      TMAG_TEMP = 0.0
-!$ACC PARALLEL LOOP GANG VECTOR PRESENT(DWORK,DWGRAD) &
+      TMAG_TEMP = 0.0_q
+!DIR$ IVDEP
+!$DIR FORCE_VECTOR
+!OCL NOVREC
+!$ACC PARALLEL LOOP PRESENT(DWORK) &
 !$ACC& REDUCTION(+:TMAG_TEMP) __IF_ASYNC__
       DO I=1,GRIDC%RL%NP
          TMAG_TEMP = TMAG_TEMP + DWORK(I,4)
       ENDDO
 !$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
 !$ACC UPDATE SELF(TMAG_TEMP) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
-      CALLMPI( M_sum_d( GRID%COMM, TMAG_TEMP, 1) )
       TOT_MAG(3) = TMAG_TEMP
+      
+!$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
+!$ACC UPDATE SELF(TOT_MAG) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
 
 !$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
+!$ACC UPDATE SELF(TOT_MAG) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
+      ! CALLMPI( M_sum_d( GRIDC%COMM, TOT_MAG, 3) )
+
+!$ACC EXIT DATA DELETE(TMAG_TEMP) __IF_ASYNC__
+!$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
+
+!$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
+!$ACC UPDATE SELF(TOT_MAG) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
 
       RETURN
       END SUBROUTINE
-
 
 !=======================================================================
 ! 
@@ -556,22 +659,25 @@
       TYPE (grid_3d)     GRIDC
       TYPE (latt)        LATT_CUR
 
+      REAL(q) TAU_NET(3)
+
       COMPLEX(q) CWORK(GRIDC%MPLWV,NCDIJ), &
               CWGRAD(GRIDC%MPLWV,NCDIJ)
       RGRID   DWORK(DIMREAL(GRIDC%MPLWV),NCDIJ), &
               DWGRAD(DIMREAL(GRIDC%MPLWV),NCDIJ)
 
-      REAL(q) TAU_NET(3)
       REAL(q) TAU_TEMP
 
+!$ACC ENTER DATA CREATE(TAU_TEMP) __IF_ASYNC__
+
       DO ISP=1,3
-         TAU_NET(ISP) = 0.0
+         TAU_NET(ISP) = 0.0_q
       ENDDO
 !$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
 !$ACC UPDATE SELF(TAU_NET) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
 
       ! x-component of torque
-      TAU_TEMP = 0.0
+      TAU_TEMP = 0.0_q
 !$ACC PARALLEL LOOP GANG VECTOR PRESENT(DWORK,DWGRAD) &
 !$ACC& REDUCTION(+:TAU_TEMP) __IF_ASYNC__
       DO I=1,GRIDC%RL%NP
@@ -579,11 +685,10 @@
       ENDDO
 !$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
 !$ACC UPDATE SELF(TAU_TEMP) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
-      CALLMPI( M_sum_d( GRID%COMM, TAU_TEMP, 1) )
       TAU_NET(1) = TAU_TEMP
 
       ! y-component of torque
-      TAU_TEMP = 0.0
+      TAU_TEMP = 0.0_q
 !$ACC PARALLEL LOOP GANG VECTOR PRESENT(DWORK,DWGRAD) &
 !$ACC& REDUCTION(+:TAU_TEMP) __IF_ASYNC__
       DO I=1,GRIDC%RL%NP
@@ -591,11 +696,10 @@
       ENDDO
 !$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
 !$ACC UPDATE SELF(TAU_TEMP) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
-      CALLMPI( M_sum_d( GRID%COMM, TAU_TEMP, 1) )
       TAU_NET(2) = TAU_TEMP
 
       ! z-component of torque
-      TAU_TEMP = 0.0
+      TAU_TEMP = 0.0_q
 !$ACC PARALLEL LOOP GANG VECTOR PRESENT(DWORK,DWGRAD) &
 !$ACC& REDUCTION(+:TAU_TEMP) __IF_ASYNC__
       DO I=1,GRIDC%RL%NP
@@ -603,14 +707,17 @@
       ENDDO
 !$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
 !$ACC UPDATE SELF(TAU_TEMP) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
-      CALLMPI( M_sum_d( GRID%COMM, TAU_TEMP, 1) )
       TAU_NET(3) = TAU_TEMP
 
+!$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
+!$ACC UPDATE SELF(TAU_NET) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
+      CALLMPI( M_sum_d( GRIDC%COMM, TAU_NET, 3) )
+
+!$ACC EXIT DATA DELETE(TAU_TEMP) __IF_ASYNC__
 !$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
 
       RETURN
       END SUBROUTINE
-
 
 !=======================================================================
 ! 
@@ -634,15 +741,17 @@
 
       TYPE (grid_3d)     GRIDC
       TYPE (latt)        LATT_CUR
+      
+      REAL(q) EMBXC
 
       COMPLEX(q) CWORK(GRIDC%MPLWV,NCDIJ), &
               CWGRAD(GRIDC%MPLWV,NCDIJ)
       RGRID   DWORK(DIMREAL(GRIDC%MPLWV),NCDIJ), &
               DWGRAD(DIMREAL(GRIDC%MPLWV),NCDIJ)
 
-      REAL(q) EMBXC
+      REAL(q) :: EARR(1)
 
-      EMBXC = 0.0
+      EMBXC = 0.0_q
 !$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
 !$ACC UPDATE SELF(EMBXC) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
 
@@ -655,7 +764,9 @@
       ENDDO
 !$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
 !$ACC UPDATE SELF(EMBXC) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
-      CALLMPI( M_sum_d( GRID%COMM, EMBXC, 1) )
+      EARR(1) = EMBXC ! dummy array
+      CALLMPI( M_sum_d( GRIDC%COMM, EARR, 1) )
+      EMBXC = EARR(1)
 
 !$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
 
