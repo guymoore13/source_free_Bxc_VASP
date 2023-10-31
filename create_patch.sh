@@ -98,32 +98,31 @@ for FILENAME in "${FILENAMES[@]}"
 do
     
     printf "source code file: ${FILENAME}"
+
+    ###############################
+    ## Apply patches
+    
+    # cp ${DIRNAME}/${FILENAME}.orig ${DIRNAME}/${FILENAME}
+    
+    patch ${DIRNAME}/${FILENAME} ${PATCHDIRNAME}/${FILENAME}.patch
     
     ###############################
-    ## Create patches
-
-    # diff -Nar -U 0 [...]
-
-    diff -Nar -U 0 ${DIRNAME}/${FILENAME}.${FILETAG_ORIG} ${DIRNAME}/${FILENAME}.${FILETAG_NEW} > ${PATCHDIRNAME}/${FILENAME}.patch
-
-    SED_CMD="s+${DIRNAME}/${FILENAME}.${FILETAG_ORIG}+DIR_ORIG/${FILENAME}+g"
-    sed -i ${SED_CMD} ${PATCHDIRNAME}/${FILENAME}.patch
-
-    SED_CMD="s+${DIRNAME}/${FILENAME}.${FILETAG_NEW}+DIR_NEW/${FILENAME}+g"
-    sed -i ${SED_CMD} ${PATCHDIRNAME}/${FILENAME}.patch
-
-    sed -i 's/20.* -0.*/2022-08-13 00:00:00.000000000 -0700/g' ${PATCHDIRNAME}/${FILENAME}.patch
-
-    ###############################
-
-
+    
 #     ###############################
-#     ## Apply patches
-    
-#     # cp ${DIRNAME}/${FILENAME}.orig ${DIRNAME}/${FILENAME}
-    
-#     patch ${DIRNAME}/${FILENAME} ${PATCHDIRNAME}/${FILENAME}.patch
-    
+#     ## Create patches
+
+#     # diff -Nar -U 0 [...]
+
+#     diff -Nar -U 0 ${DIRNAME}/${FILENAME}.${FILETAG_ORIG} ${DIRNAME}/${FILENAME}.${FILETAG_NEW} > ${PATCHDIRNAME}/${FILENAME}.patch
+
+#     SED_CMD="s+${DIRNAME}/${FILENAME}.${FILETAG_ORIG}+DIR_ORIG/${FILENAME}+g"
+#     sed -i ${SED_CMD} ${PATCHDIRNAME}/${FILENAME}.patch
+
+#     SED_CMD="s+${DIRNAME}/${FILENAME}.${FILETAG_NEW}+DIR_NEW/${FILENAME}+g"
+#     sed -i ${SED_CMD} ${PATCHDIRNAME}/${FILENAME}.patch
+
+#     sed -i 's/20.* -0.*/2022-08-13 00:00:00.000000000 -0700/g' ${PATCHDIRNAME}/${FILENAME}.patch
+
 #     ###############################
     
     # # to save changes:
