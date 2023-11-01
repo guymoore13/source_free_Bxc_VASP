@@ -11,6 +11,13 @@ options=("6.2.1" "5.4.4")
 select opt in "${options[@]}"
 do
     case $opt in
+        "6.4.2")
+            printf "you've chosen VASP version 6.4.2\n"
+            VDIRNAME="vasp.6.4.2"
+            declare -a FILENAMES=(".objects" "main.F" "pot.F" "metagga.F" "nmr.F" "base.F" "wave_struct.F" "reader.F" "xml_writer.F")
+            # declare -a FILENAMES=("pot.F")
+            break
+            ;;
         "6.2.1")
             printf "you've chosen VASP version 6.2.1\n"
             VDIRNAME="vasp.6.2.1"
