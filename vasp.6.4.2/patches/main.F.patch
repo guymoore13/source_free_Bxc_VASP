@@ -25,7 +25,7 @@
 +         CALL OUTPOS(IO%IUVTOT,.FALSE.,INFO%SZNAM1,T_INFO,LATT_CUR%SCALE,LATT_CUR%A,.FALSE.,DYN%POSION)
 +         io_end
 +
-+         CALL PUSH_XC_TYPE(P(1)%LEXCH,1._q,1._q,1._q,1._q,0._q)
++         CALL PUSH_XC_TYPE(P(1)%LEXCH,1._q,1._q,1._q,1._q,0._q,LDASCREEN)
 +         CALL SETUP_LDA_XC(2,IO%IU6,IO%IU0,IO%IDIOT) 
 +
 +         ! compute Vxc and Bxc
@@ -60,7 +60,7 @@
 +         CALL OUTPOS(IO%IUVTOT,.FALSE.,INFO%SZNAM1,T_INFO,LATT_CUR%SCALE,LATT_CUR%A,.FALSE.,DYN%POSION)
 +         io_end
 +
-+         CALL PUSH_XC_TYPE(P(1)%LEXCH,1._q,1._q,1._q,1._q,0._q)
++         CALL PUSH_XC_TYPE(P(1)%LEXCH,1._q,1._q,1._q,1._q,0._q,LDASCREEN)
 +         CALL SETUP_LDA_XC(2,IO%IU6,IO%IU0,IO%IDIOT) 
 +
 +         ! compute sources associated with Bxc
@@ -95,7 +95,7 @@
 +         CALL OUTPOS(IO%IUVTOT,.FALSE.,INFO%SZNAM1,T_INFO,LATT_CUR%SCALE,LATT_CUR%A,.FALSE.,DYN%POSION)
 +         io_end
 +
-+         CALL PUSH_XC_TYPE(P(1)%LEXCH,1._q,1._q,1._q,1._q,0._q)
++         CALL PUSH_XC_TYPE(P(1)%LEXCH,1._q,1._q,1._q,1._q,0._q,LDASCREEN)
 +         CALL SETUP_LDA_XC(2,IO%IU6,IO%IU0,IO%IDIOT) 
 +
 +         ! compute sources associated with Bxc
