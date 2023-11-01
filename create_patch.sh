@@ -5,6 +5,8 @@
 
 ###############################################################
 ## User input & setup
+#
+set -x
 
 printf "\nPlease select the VASP version to patch:\n"
 options=("6.4.2" "6.2.1" "5.4.4")
@@ -111,7 +113,7 @@ do
     
     # cp ${DIRNAME}/${FILENAME}.orig ${DIRNAME}/${FILENAME}
     
-    patch ${DIRNAME}/${FILENAME} ${PATCHDIRNAME}/${FILENAME}.patch
+    patch "${DIRNAME}/${FILENAME}" "${PATCHDIRNAME}/${FILENAME}.patch"
     
     ###############################
     
