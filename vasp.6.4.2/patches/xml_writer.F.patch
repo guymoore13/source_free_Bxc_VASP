@@ -1,0 +1,4 @@
+--- DIR_ORIG/xml_writer.F	2023-10-31 17:07:27
++++ DIR_NEW/xml_writer.F	2023-10-31 17:08:12
+@@ -35,0 +36 @@
++     &        LSOURCEFREE,LVXC,LSOURCEPOT,LAXC,LPMCURRENT, &

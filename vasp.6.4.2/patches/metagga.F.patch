@@ -1,0 +1,33 @@
+--- DIR_ORIG/metagga.F	2023-07-20 00:39:10
++++ DIR_NEW/metagga.F	2023-10-31 16:49:24
+@@ -8215 +8215 @@
+-     &   KINEDEN,CTMP,DENCOR,CWORK,MUTOT_)
++     &   KINEDEN,CTMP,DENCOR,CWORK,MUTOT_,WDES%LSOURCEFREE)
+@@ -8411 +8411 @@
+-     &   KINEDEN,CTMP,DENCOR,CVTOT,MUTOT_)
++     &   KINEDEN,CTMP,DENCOR,CVTOT,MUTOT_,WDES%LSOURCEFREE)
+@@ -8468 +8468 @@
+-     &   KINEDEN,CHTOT,DENCOR,CWORK,MUTOT &
++     &   KINEDEN,CHTOT,DENCOR,CWORK,MUTOT,LSOURCEFREE_T &
+@@ -8489,0 +8490 @@
++      LOGICAL LSOURCEFREE_T
+@@ -8571,0 +8573,19 @@
++
++         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
++         !! GCM: source-free correction to Bxc
++         !! Input:  Bxc with magnetic monopoles (in CVTOT(I, "2 to 4"))
++         !! Output: Bxc s.t. div(Bxc) = 0 everywhere in the domain.
++
++         ! IF (LSOURCEFREE_T) THEN
++         IF (.TRUE.) THEN
++            ! Project Bxc onto source-free field
++!$ACC UPDATE SELF(CHTOT,CWORK) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
++            CALL SOURCE_FREE(4, GRIDC, LATT_CUR, CHTOT, CWORK, .FALSE.)
++!$ACC UPDATE DEVICE(CWORK) __IF_ASYNC__
++!             ! second call to test that sources are removed (div(Bxc) = 0)
++! !$ACC UPDATE SELF(CHTOT,CWORK) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
++!             CALL SOURCE_FREE(4, GRIDC, LATT_CUR, CHTOT, CWORK, .FALSE.)
++! !$ACC UPDATE DEVICE(CWORK) __IF_ASYNC__
++         ENDIF
++         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
++

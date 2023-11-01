@@ -1,0 +1,7 @@
+--- DIR_ORIG/base.F	2023-10-31 16:30:07
++++ DIR_NEW/base.F	2023-10-31 16:31:17
+@@ -140,0 +141,4 @@
++        LOGICAL LVXC                 ! write XC potential to XCPOT
++        LOGICAL LSOURCEPOT           ! write source-free Bxc corrections to SOURCEPOT
++        LOGICAL LAXC                 ! write Axc vector potential to AXCPOT
++        LOGICAL LPMCURRENT           ! write paramagnetic (probability) current density to JPARAMAG
