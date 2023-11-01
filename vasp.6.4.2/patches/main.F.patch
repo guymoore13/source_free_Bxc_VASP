@@ -1,0 +1,164 @@
+--- DIR_ORIG/main.F	2023-10-31 16:33:49
++++ DIR_NEW/main.F	2023-10-31 16:40:44
+@@ -679,0 +680 @@
++          WDES%LSOURCEFREE,IO%LVXC,IO%LSOURCEPOT,IO%LAXC,IO%LPMCURRENT, &
+@@ -946,0 +948,2 @@
++! sourcefree__
++      CALL SOURCEFREE_READER(IO%IU0,IO%IU5)
+@@ -1779,0 +1783 @@
++          WDES%LSOURCEFREE,IO%LVXC,IO%LSOURCEPOT,IO%LAXC,IO%LPMCURRENT, &
+@@ -5050,0 +5055,153 @@
++
++      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
++      !! GCM:
++
++!-----if we are interested in the XC (local) potential write it here:
++
++      IF (IO%LVXC) THEN
++
++#ifdef MPI
++         IF (WDES%COMM_KINTER%NODE_ME.EQ.1) THEN
++#endif
++         io_begin
++         IF (IO%LOPEN) OPEN(IO%IUVTOT,FILE='XCPOT',STATUS='UNKNOWN')
++         REWIND IO%IUVTOT
++         CALL OUTPOS(IO%IUVTOT,.FALSE.,INFO%SZNAM1,T_INFO,LATT_CUR%SCALE,LATT_CUR%A,.FALSE.,DYN%POSION)
++         io_end
++
++         CALL PUSH_XC_TYPE(P(1)%LEXCH,1._q,1._q,1._q,1._q,0._q,LDASCREEN)
++         CALL SETUP_LDA_XC(2,IO%IU6,IO%IU0,IO%IDIOT) 
++
++         ! compute Vxc and Bxc
++         CALL POTXC_RL(GRIDC, INFO, WDES, LATT_CUR, CVTOT, CHTOT, DENCOR, 0)
++
++         CALL OUTPOT(GRIDC, IO%IUVTOT,.TRUE.,CVTOT)
++         DO ISP=2,WDES%NCDIJ
++         do_io WRITE(IO%IUVTOT,'(5E20.12)') (T_INFO%ATOMOM(NI),NI=1,T_INFO%NIONS)
++         CALL OUTPOT(GRIDC, IO%IUVTOT,.TRUE.,CVTOT(1,ISP))
++         ENDDO
++         IF (IO%LOPEN) THEN
++         do_io CALL REOPEN(IO%IUVTOT)
++         ELSE
++         do_io REWIND IO%IUVTOT
++         ENDIF
++#ifdef MPI
++         ENDIF
++#endif
++
++      ENDIF
++
++!-----if we are interested in the source-free corrections to the local potential write it here:
++
++      IF (IO%LSOURCEPOT) THEN
++
++#ifdef MPI
++         IF (WDES%COMM_KINTER%NODE_ME.EQ.1) THEN
++#endif
++         io_begin
++         IF (IO%LOPEN) OPEN(IO%IUVTOT,FILE='SOURCEPOT',STATUS='UNKNOWN')
++         REWIND IO%IUVTOT
++         CALL OUTPOS(IO%IUVTOT,.FALSE.,INFO%SZNAM1,T_INFO,LATT_CUR%SCALE,LATT_CUR%A,.FALSE.,DYN%POSION)
++         io_end
++
++         CALL PUSH_XC_TYPE(P(1)%LEXCH,1._q,1._q,1._q,1._q,0._q,LDASCREEN)
++         CALL SETUP_LDA_XC(2,IO%IU6,IO%IU0,IO%IDIOT) 
++
++         ! compute sources associated with Bxc
++         CALL POTXC_RL(GRIDC, INFO, WDES, LATT_CUR, CVTOT, CHTOT, DENCOR, 1)
++
++         CALL OUTPOT(GRIDC, IO%IUVTOT,.TRUE.,CVTOT)
++         DO ISP=2,WDES%NCDIJ
++         do_io WRITE(IO%IUVTOT,'(5E20.12)') (T_INFO%ATOMOM(NI),NI=1,T_INFO%NIONS)
++         CALL OUTPOT(GRIDC, IO%IUVTOT,.TRUE.,CVTOT(1,ISP))
++         ENDDO
++         IF (IO%LOPEN) THEN
++         do_io CALL REOPEN(IO%IUVTOT)
++         ELSE
++         do_io REWIND IO%IUVTOT
++         ENDIF
++#ifdef MPI
++         ENDIF
++#endif
++
++      ENDIF
++
++!-----if we are interested in Axc, subject to div(Axc)=0 gauge, write it here:
++
++      IF (IO%LAXC) THEN
++
++#ifdef MPI
++         IF (WDES%COMM_KINTER%NODE_ME.EQ.1) THEN
++#endif
++         io_begin
++         IF (IO%LOPEN) OPEN(IO%IUVTOT,FILE='AXCPOT',STATUS='UNKNOWN')
++         REWIND IO%IUVTOT
++         CALL OUTPOS(IO%IUVTOT,.FALSE.,INFO%SZNAM1,T_INFO,LATT_CUR%SCALE,LATT_CUR%A,.FALSE.,DYN%POSION)
++         io_end
++
++         CALL PUSH_XC_TYPE(P(1)%LEXCH,1._q,1._q,1._q,1._q,0._q,LDASCREEN)
++         CALL SETUP_LDA_XC(2,IO%IU6,IO%IU0,IO%IDIOT) 
++
++         ! compute sources associated with Bxc
++         CALL POTXC_RL(GRIDC, INFO, WDES, LATT_CUR, CVTOT, CHTOT, DENCOR, 2)
++
++         CALL OUTPOT(GRIDC, IO%IUVTOT,.TRUE.,CVTOT)
++         DO ISP=2,WDES%NCDIJ
++         do_io WRITE(IO%IUVTOT,'(5E20.12)') (T_INFO%ATOMOM(NI),NI=1,T_INFO%NIONS)
++         CALL OUTPOT(GRIDC, IO%IUVTOT,.TRUE.,CVTOT(1,ISP))
++         ENDDO
++         IF (IO%LOPEN) THEN
++         do_io CALL REOPEN(IO%IUVTOT)
++         ELSE
++         do_io REWIND IO%IUVTOT
++         ENDIF
++#ifdef MPI
++         ENDIF
++#endif
++
++      ENDIF
++
++!-----if we are interested in the probability (paramagnetic) current write it here:
++
++      IF (IO%LPMCURRENT) THEN
++
++         ALLOCATE(CWORK(GRIDC%MPLWV,3))
++
++#ifdef MPI
++         IF (WDES%COMM_KINTER%NODE_ME.EQ.1) THEN
++#endif
++         io_begin
++         IF (IO%LOPEN) OPEN(IO%IUVTOT,FILE='JPARAMAG',STATUS='UNKNOWN')
++         REWIND IO%IUVTOT
++         CALL OUTPOS(IO%IUVTOT,.FALSE.,INFO%SZNAM1,T_INFO,LATT_CUR%SCALE,LATT_CUR%A,.FALSE.,DYN%POSION)
++         io_end
++
++!$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
++!$ACC UPDATE SELF(CWORK,CHTOT) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
++
++         ! compute j_p
++         CALL CURRENT_PARAMAG( W, GRID_SOFT, GRIDC, GRIDUS, C_TO_US, SOFT_TO_C, P, LATT_CUR, &
++            HAMILTONIAN%AVEC, HAMILTONIAN%AVTOT, CWORK, CHTOT, T_INFO)
++
++!$ACC WAIT(ACC_ASYNC_Q) IF(ACC_EXEC_ON)
++!$ACC UPDATE SELF(CWORK,CHTOT) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
++
++         CALL OUTPOT(GRIDC, IO%IUVTOT,.TRUE.,CHTOT)
++         DO ISP=1,3
++         do_io WRITE(IO%IUVTOT,'(5E20.12)') (T_INFO%ATOMOM(NI),NI=1,T_INFO%NIONS)
++         CALL OUTPOT(GRIDC, IO%IUVTOT,.TRUE.,CWORK(1,ISP))
++         ENDDO
++         IF (IO%LOPEN) THEN
++         do_io CALL REOPEN(IO%IUVTOT)
++         ELSE
++         do_io REWIND IO%IUVTOT
++         ENDIF
++#ifdef MPI
++         ENDIF
++#endif
++
++         DEALLOCATE(CWORK)
++
++      ENDIF
++
++!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
++

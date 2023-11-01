@@ -1,0 +1,195 @@
+--- DIR_ORIG/pot.F	2023-07-20 00:39:11
++++ DIR_NEW/pot.F	2023-10-31 16:22:22
+@@ -217 +217,23 @@
+-                    
++
++          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
++          !! GCM: source-free correction to Bxc
++          !! Input:  Bxc with magnetic monopoles (in CVTOT(I, "2 to 4"))
++          !! Output: Bxc s.t. div(Bxc) = 0 everywhere in the domain.
++
++          ! PUSH_ACC_EXEC_ON(.FALSE.)
++          ! POP_ACC_EXEC_ON
++
++          ! IF (WDES%LSOURCEFREE) THEN
++          IF (.TRUE.) THEN
++             ! Project Bxc onto source-free field
++!$ACC UPDATE SELF(CVTOT) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
++             CALL SOURCE_FREE(4, GRIDC, LATT_CUR, CHTOT, CVTOT, 0)
++!$ACC UPDATE DEVICE(CVTOT) __IF_ASYNC__
++!              ! second call to confirm that sources are removed (div(Bxc) = 0)
++! !$ACC UPDATE SELF(CVTOT) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
++!              CALL SOURCE_FREE(4, GRIDC, LATT_CUR, CHTOT, CVTOT, 0)
++! !$ACC UPDATE DEVICE(CVTOT) __IF_ASYNC__
++          ENDIF
++
++          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
++
+@@ -635,0 +658,14 @@
++          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
++          !! GCM: source-free correction to Bxc
++          !! Input:  Bxc with magnetic monopoles (in CVTOT(I, "2 to 4"))
++          !! Output: Bxc s.t. div(Bxc) = 0 everywhere in the domain.
++
++          ! IF (WDES%LSOURCEFREE) THEN
++          IF (.TRUE.) THEN
++             ! Project Bxc onto source-free field
++!$ACC UPDATE SELF(CVTOT) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
++             CALL SOURCE_FREE(4, GRIDC, LATT_CUR, CHTOT, CVTOT, 0)
++!$ACC UPDATE DEVICE(CVTOT) __IF_ASYNC__
++          ENDIF
++          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
++
+@@ -665,0 +702,137 @@
++      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
++      !! GCM:
++
++      SUBROUTINE POTXC_RL(GRIDC, INFO, WDES, LATT_CUR, CVTOT,CHTOT,DENCOR, SOURCEOUT)
++#ifdef _OPENACC
++      USE mopenacc_struct_def
++#endif
++      USE prec
++
++      USE xcgrad
++      USE setexm
++      USE mpimy
++      USE mgrid
++      USE lattice
++      USE base
++      USE wave
++
++      IMPLICIT COMPLEX(q) (C)
++      IMPLICIT REAL(q) (A-B,D-H,O-Z)
++
++      TYPE (grid_3d)     GRIDC
++      TYPE (wavedes)     WDES
++      TYPE (info_struct) INFO
++      TYPE (latt)        LATT_CUR
++
++      COMPLEX(q) CHTOT(GRIDC%MPLWV,WDES%NCDIJ),CVTOT(GRIDC%MPLWV,WDES%NCDIJ)
++      RGRID      DENCOR(GRIDC%RL%NP)
++      INTEGER    SOURCEOUT
++! work arrays
++      REAL(q)    XCSIF(3,3)
++      COMPLEX(q), ALLOCATABLE:: CWORK(:,:)
++
++!$ACC KERNELS PRESENT(CVTOT) __IF_ASYNC__
++      CVTOT = 0 
++!$ACC END KERNELS
++      ALLOCATE(CWORK(GRIDC%MPLWV,WDES%NCDIJ))
++!$ACC ENTER DATA CREATE(CWORK) __IF_ASYNC__
++
++      DO ISP=1,WDES%NCDIJ
++         CALL FFT3D(CHTOT(1,ISP),GRIDC,1)
++      ENDDO
++        IF (WDES%ISPIN==2) THEN
++
++          ! get the charge and the total magnetization
++          CALL MAG_DENSITY(CHTOT, CWORK, GRIDC, WDES%NCDIJ)
++
++          IF (ISGGA()) THEN
++             ! gradient corrections to LDA
++             ! unfortunately FEXCGS requires (up,down) density
++             ! instead of (rho,mag)
++             CALL RL_FLIP(CWORK, GRIDC, 2, .TRUE.)
++             ! GGA potential
++             CALL FEXCGS(2, GRIDC, LATT_CUR, XCENCG, EXCG, CVZERG, XCSIF, &
++                  CWORK, CVTOT, DENCOR)
++             CALL RL_FLIP(CWORK, GRIDC, 2, .FALSE.)
++          ENDIF
++
++          ! add LDA part of potential
++          CALL FEXCF(GRIDC,LATT_CUR%OMEGA, &
++             CWORK(1,1), CWORK(1,2), DENCOR, CVTOT(1,1), CVTOT(1,2), &
++             CVZERO,EXC,XCENC,XCSIF, .TRUE.)
++          ! we have now the potential for up and down stored in CVTOT(:,1) and CVTOT(:,2)
++
++          ! get the proper direction vx = v0 + hat m delta v
++          CALL MAG_DIRECTION(CHTOT(1,1), CVTOT(1,1), GRIDC, WDES%NCDIJ)
++        ELSEIF (WDES%LNONCOLLINEAR) THEN
++!-MM- gradient corrections in the noncollinear case are calculated
++!     a bit differently than in the collinear case
++          IF (ISGGA()) THEN
++             ! GGA potential
++             CALL FEXCGS(4, GRIDC, LATT_CUR, XCENCG, EXCG, CVZERG, XCSIF, &
++                  CHTOT, CVTOT, DENCOR)
++          ENDIF
++
++          ! FEXCF requires (up,down) density instead of (rho,mag)
++          CALL MAG_DENSITY(CHTOT, CWORK, GRIDC, WDES%NCDIJ)
++          ! add LDA part of potential
++          CALL FEXCF(GRIDC,LATT_CUR%OMEGA, &
++             CWORK(1,1), CWORK(1,2), DENCOR, CVTOT(1,1), CVTOT(1,2), &
++             CVZERO,EXC,XCENC,XCSIF, .TRUE.)
++          ! we have now the potential for up and down stored in CVTOT(:,1) and CVTOT(:,2)
++          ! get the proper direction vx = v0 + hat m delta v
++          CALL MAG_DIRECTION(CHTOT(1,1), CVTOT(1,1), GRIDC, WDES%NCDIJ)
++!-MM- end of changes to calculation of gga in noncollinear case
++
++          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
++          !! GCM: source-free correction to Bxc
++          !! Input:  Bxc with magnetic monopoles (in CVTOT(I, "2 to 4"))
++          !! Output: Bxc s.t. div(Bxc) = 0 everywhere in the domain.
++
++          ! IF (WDES%LSOURCEFREE) THEN
++          IF (.TRUE.) THEN
++             ! Project Bxc onto source-free field
++!$ACC UPDATE SELF(CVTOT) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
++             CALL SOURCE_FREE(4, GRIDC, LATT_CUR, CHTOT, CVTOT, 0)
++!$ACC UPDATE DEVICE(CVTOT) __IF_ASYNC__
++          ENDIF
++          IF (SOURCEOUT > 0) THEN
++             ! second call to write out corrections
++!$ACC UPDATE SELF(CVTOT) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
++             CALL SOURCE_FREE(4, GRIDC, LATT_CUR, CHTOT, CVTOT, SOURCEOUT)
++!$ACC UPDATE DEVICE(CVTOT) __IF_ASYNC__
++           ENDIF
++           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
++
++       ELSE
++          IF (ISGGA()) THEN
++             ! gradient corrections to LDA
++             CALL FEXCG(GRIDC,LATT_CUR,XCENCG,EXCG,CVZERG,XCSIF, &
++                  CHTOT,CVTOT,DENCOR)
++          ENDIF
++
++          ! LDA part of potential
++          CALL FEXCP(GRIDC,LATT_CUR%OMEGA, &
++               CHTOT,DENCOR,CVTOT,CWORK,CVZERO,EXC,XCENC,XCSIF,.TRUE.)
++       ENDIF
++
++       DO ISP=1,WDES%NCDIJ
++          CALL FFT_RC_SCALE(CHTOT(1,ISP),CHTOT(1,ISP),GRIDC)
++          CALL SETUNB_COMPAT(CHTOT(1,ISP),GRIDC)
++       ENDDO
++!-----------------------------------------------------------------------
++! FFT of the exchange-correlation potential to reciprocal space
++!-----------------------------------------------------------------------
++!       RINPL=1._q/GRIDC%NPLWV
++!       DO  ISP=1,WDES%NCDIJ 
++!          CALL RL_ADD(CVTOT(1,ISP),RINPL,CVTOT(1,ISP),0.0_q,CVTOT(1,ISP),GRIDC)
++!          CALL FFT3D(CVTOT(1,ISP),GRIDC,-1)
++!          CALL SETUNB_COMPAT(CVTOT(1,ISP),GRIDC)
++!       ENDDO
++!$ACC EXIT DATA DELETE(CWORK) __IF_ASYNC__
++      DEALLOCATE(CWORK)
++
++      END SUBROUTINE POTXC_RL
++
++      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
++
+@@ -741,0 +915,14 @@
++
++          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
++          !! GCM: source-free correction to Bxc
++          !! Input:  Bxc with magnetic monopoles (in CVTOT(I, "2 to 4"))
++          !! Output: Bxc s.t. div(Bxc) = 0 everywhere in the domain.
++
++          ! IF (WDES%LSOURCEFREE) THEN
++          IF (.TRUE.) THEN
++             ! Project Bxc onto source-free field
++!$ACC UPDATE SELF(CVTOT) IF(ACC_EXEC_ON) WAIT(ACC_ASYNC_Q)
++             CALL SOURCE_FREE(4, GRIDC, LATT_CUR, CHTOT, CVTOT, 0)
++!$ACC UPDATE DEVICE(CVTOT) __IF_ASYNC__
++          ENDIF
++          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
