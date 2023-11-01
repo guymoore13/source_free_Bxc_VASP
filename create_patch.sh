@@ -7,7 +7,7 @@
 ## User input & setup
 
 printf "\nPlease select the VASP version to patch:\n"
-options=("6.2.1" "5.4.4")
+options=("6.4.2" "6.2.1" "5.4.4")
 select opt in "${options[@]}"
 do
     case $opt in
@@ -104,7 +104,7 @@ FILETAG_NEW="sf"
 for FILENAME in "${FILENAMES[@]}"
 do
     
-    printf "source code file: ${FILENAME}"
+    printf "source code file: ${FILENAME}\n"
 
     ###############################
     ## Apply patches
