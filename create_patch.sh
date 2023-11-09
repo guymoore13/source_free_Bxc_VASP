@@ -5,12 +5,20 @@
 
 ###############################################################
 ## User input & setup
+#
 
 printf "\nPlease select the VASP version to patch:\n"
-options=("6.2.1" "5.4.4")
+options=("6.4.1" "6.2.1" "5.4.4")
 select opt in "${options[@]}"
 do
     case $opt in
+        "6.4.1")
+            printf "you've chosen VASP version 6.4.1\n"
+            VDIRNAME="vasp.6.4.1"
+            declare -a FILENAMES=(".objects" "main.F" "pot.F" "metagga.F" "nmr.F" "base.F" "wave_struct.F" "reader.F" "xml_writer.F")
+            # declare -a FILENAMES=("pot.F")
+            break
+            ;;
         "6.2.1")
             printf "you've chosen VASP version 6.2.1\n"
             VDIRNAME="vasp.6.2.1"
@@ -94,17 +102,22 @@ read -r DIRNAME
 FILETAG_ORIG="orig"
 FILETAG_NEW="sf"
 
+# TODO: Currently this file is the same for all versions
+# But that won't always be the case, would need an update.
+cp vasp.6.2.1/src/source_free_bxc.F "${DIRNAME}/."
+
 for FILENAME in "${FILENAMES[@]}"
 do
     
-    printf "source code file: ${FILENAME}"
+    printf "source code file: ${FILENAME}\n"
 
     ###############################
     ## Apply patches
     
     # cp ${DIRNAME}/${FILENAME}.orig ${DIRNAME}/${FILENAME}
     
-    patch ${DIRNAME}/${FILENAME} ${PATCHDIRNAME}/${FILENAME}.patch
+    cp "${DIRNAME}/${FILENAME}" "${DIRNAME}/${FILENAME}.bak"
+    patch "${DIRNAME}/${FILENAME}" "${PATCHDIRNAME}/${FILENAME}.patch"
     
     ###############################
     
