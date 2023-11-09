@@ -5,12 +5,20 @@
 
 ###############################################################
 ## User input & setup
+#
 
 printf "\nPlease select the VASP version to patch:\n"
-options=("6.2.1" "5.4.4")
+options=("6.4.1" "6.2.1" "5.4.4")
 select opt in "${options[@]}"
 do
     case $opt in
+        "6.4.1")
+            printf "you've chosen VASP version 6.4.1\n"
+            VDIRNAME="vasp.6.4.1"
+            declare -a FILENAMES=(".objects" "main.F" "pot.F" "metagga.F" "nmr.F" "base.F" "wave_struct.F" "reader.F" "xml_writer.F")
+            # declare -a FILENAMES=("pot.F")
+            break
+            ;;
         "6.2.1")
             printf "you've chosen VASP version 6.2.1\n"
             VDIRNAME="vasp.6.2.1"
@@ -97,14 +105,14 @@ FILETAG_NEW="sf"
 for FILENAME in "${FILENAMES[@]}"
 do
     
-    printf "source code file: ${FILENAME}"
+    printf "source code file: ${FILENAME}\n"
 
     ###############################
     ## Apply patches
     
     # cp ${DIRNAME}/${FILENAME}.orig ${DIRNAME}/${FILENAME}
     
-    patch ${DIRNAME}/${FILENAME} ${PATCHDIRNAME}/${FILENAME}.patch
+    patch "${DIRNAME}/${FILENAME}" "${PATCHDIRNAME}/${FILENAME}.patch"
     
     ###############################
     
