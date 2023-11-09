@@ -102,6 +102,10 @@ read -r DIRNAME
 FILETAG_ORIG="orig"
 FILETAG_NEW="sf"
 
+# TODO: Currently this file is the same for all versions
+# But that won't always be the case, would need an update.
+cp vasp.6.2.1/src/source_free_bxc.F "${DIRNAME}/."
+
 for FILENAME in "${FILENAMES[@]}"
 do
     
@@ -112,6 +116,7 @@ do
     
     # cp ${DIRNAME}/${FILENAME}.orig ${DIRNAME}/${FILENAME}
     
+    cp "${DIRNAME}/${FILENAME}" "${DIRNAME}/${FILENAME}.bak"
     patch "${DIRNAME}/${FILENAME}" "${PATCHDIRNAME}/${FILENAME}.patch"
     
     ###############################
